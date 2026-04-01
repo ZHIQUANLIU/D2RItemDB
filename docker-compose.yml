@@ -1,0 +1,23 @@
+
+services:
+  app:
+    build: .
+    container_name: d2r-item-db
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./d2r_items.db:/app/d2r_items.db
+      - ./static/uploads:/app/static/uploads
+      - ./settings.json:/app/settings.json
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Use environment to force production mode
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+
+# Optional: Add an Nginx service if you want SSL termination
+# networks:
+#   default:
+#     driver: bridge

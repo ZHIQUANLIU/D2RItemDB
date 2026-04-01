@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from dotenv import load_dotenv
+from whitenoise import WhiteNoise
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +25,11 @@ if os.getenv('ENVIRONMENT') == 'production':
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    # Use WhiteNoise for efficient static serving in production
+    app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/', prefix='static/')
+    # Also handle the uploads folder within static
+    if os.path.exists('static/uploads'):
+        app.wsgi_app.add_files('static/uploads/', prefix='static/uploads/')
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -31,15 +37,16 @@ DB_PATH = os.getenv('DATABASE_URL', 'd2r_items.db').replace('sqlite:///', '')
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 
-def safe_int(value, default=1, min_val=1, max_val=10000):
+def safe_int(value, default=1, min_val=-1000000, max_val=1000000):
     """Safely convert value to integer with bounds checking"""
     try:
+        if value is None: return default
         val = int(value)
         return max(min_val, min(val, max_val))
     except (ValueError, TypeError):
         return default
 
-def safe_str(value, max_length=255):
+def safe_str(value, max_length=1000):
     """Safely convert value to string with length limit"""
     if value is None:
         return ""
@@ -395,13 +402,14 @@ def extract_with_gemini(image_path, api_key):
     prompt = '''Extract Diablo 2 Resurrected item stats from this image. Return ONLY a JSON object with these exact fields:
 {
   "item_name": "item name",
+  "item_color": "unique|set|magic|rare|craft|normal",
   "req_level": number,
   "req_str": number, 
   "req_dex": number,
   "defense": number,
   "enhanced_defense": number,
   "sockets": number,
-  "durability": number,
+  "durability": [current, max],
   "damage_min": number,
   "damage_max": number,
   "str_bonus": number,
@@ -421,17 +429,6 @@ def extract_with_gemini(image_path, api_key):
   "res_ltng": number,
   "res_pois": number,
   "res_all": number,
-  "absorb_fire": number,
-  "absorb_cold": number,
-  "absorb_ltng": number,
-  "add_fire_min": number,
-  "add_fire_max": number,
-  "add_cold_min": number,
-  "add_cold_max": number,
-  "add_ltng_min": number,
-  "add_ltng_max": number,
-  "add_pois_min": number,
-  "add_pois_max": number,
   "mf": number,
   "eg": number,
   "life_steal": number,
@@ -446,9 +443,10 @@ def extract_with_gemini(image_path, api_key):
   "cannot_be_frozen": 1 or 0,
   "is_ethereal": 1 or 0,
   "experience": number,
-  "target_defense": number
+  "target_defense": number,
+  "other_stats": ["list of other stats found"]
 }
-If a stat is not present, use null.'''
+If a stat is not present or cannot be determined, use null. For ranges like "10-20 damage", parse min and max separately.'''
     
     image_part = {'mime_type': 'image/jpeg', 'data': base64.b64encode(image_data).decode('utf-8')}
     response = model.generate_content([prompt, image_part])
@@ -648,20 +646,6 @@ def inject_helpers():
     return dict(build_query=build_query, translate_type=translate_item_type, translate_prop=translate_prop, 
                 min=min, max=max, range=range)
 
-def safe_int(value, default=1, min_val=1, max_val=10000):
-    """Safely convert value to integer with bounds checking"""
-    try:
-        val = int(value)
-        return max(min_val, min(val, max_val))
-    except (ValueError, TypeError):
-        return default
-
-def safe_str(value, max_length=255):
-    """Safely convert value to string with length limit"""
-    if value is None:
-        return ""
-    return str(value).strip()[:max_length]
-
 def build_search_conditions(q, table_prefix=""):
     """Build search conditions for parameterized queries"""
     conditions = []
@@ -697,16 +681,15 @@ def execute_category_query(table_name, category_name, conditions, params, order_
         rows = query_db(sql, tuple(params_with_pagination))
         return [row_to_dict(r) for r in rows]
 
-@app.route('/')
-def index():
-    q = safe_str(request.args.get('q', ''))
-    category = safe_str(request.args.get('category', 'all'))
-    wtype = safe_str(request.args.get('wtype', 'all'))
-    atype = safe_str(request.args.get('atype', 'all'))
-    sort = safe_str(request.args.get('sort', 'level'))
-    lang = safe_str(request.args.get('lang', 'zh'))
-    page = safe_int(request.args.get('page', 1), default=1, max_val=10000)
-    per_page = safe_int(request.args.get('per_page', 50), default=50, max_val=500)
+def get_filtered_items(args):
+    """Refactored logic to filter items from multiple tables"""
+    q = safe_str(args.get('q', ''))
+    category = safe_str(args.get('category', 'all'))
+    wtype = safe_str(args.get('wtype', 'all'))
+    atype = safe_str(args.get('atype', 'all'))
+    sort = safe_str(args.get('sort', 'level'))
+    page = safe_int(args.get('page', 1), default=1)
+    per_page = safe_int(args.get('per_page', 50), default=50, max_val=500)
 
     items = []
     total_count = 0
@@ -729,93 +712,57 @@ def index():
 
     # Define category configurations
     categories = {
-        'weapons': {
-            'table': 'weapons',
-            'category_name': 'weapons',
-            'extra_conditions': [],
-            'extra_params': []
-        },
-        'armor': {
-            'table': 'armor',
-            'category_name': 'armor',
-            'extra_conditions': [],
-            'extra_params': []
-        },
-        'unique': {
-            'table': 'unique_items',
-            'category_name': 'unique',
-            'extra_conditions': [],
-            'extra_params': []
-        },
-        'set': {
-            'table': 'set_items',
-            'category_name': 'set',
-            'extra_conditions': [],
-            'extra_params': []
-        },
-        'misc': {
-            'table': 'misc',
-            'category_name': 'misc',
-            'extra_conditions': [],
-            'extra_params': []
-        },
-        'gems': {
-            'table': 'gems',
-            'category_name': 'gem',
-            'extra_conditions': [],
-            'extra_params': []
-        },
-        'runes': {
-            'table': 'runes',
-            'category_name': 'rune',
-            'extra_conditions': [],
-            'extra_params': []
-        }
+        'weapons': {'table': 'weapons', 'category_name': 'weapons', 'extra_conditions': [], 'extra_params': []},
+        'armor': {'table': 'armor', 'category_name': 'armor', 'extra_conditions': [], 'extra_params': []},
+        'unique': {'table': 'unique_items', 'category_name': 'unique', 'extra_conditions': [], 'extra_params': []},
+        'set': {'table': 'set_items', 'category_name': 'set', 'extra_conditions': [], 'extra_params': []},
+        'misc': {'table': 'misc', 'category_name': 'misc', 'extra_conditions': [], 'extra_params': []},
+        'gems': {'table': 'gems', 'category_name': 'gem', 'extra_conditions': [], 'extra_params': []},
+        'runes': {'table': 'runes', 'category_name': 'rune', 'extra_conditions': [], 'extra_params': []}
     }
 
-    # Add weapon type filtering
     if wtype != 'all' and wtype in wtype_map:
         categories['weapons']['extra_conditions'].append("type IN ({})".format(','.join('?' * len(wtype_map[wtype]))))
         categories['weapons']['extra_params'].extend(wtype_map[wtype])
 
-    # Add armor type filtering
     if atype != 'all':
         categories['armor']['extra_conditions'].append("type = ?")
         categories['armor']['extra_params'].append(atype)
 
-    # Process each category
     for cat_key, cat_config in categories.items():
-        if category not in ('all', cat_key):
-            continue
-
-        # Build search conditions
+        if category not in ('all', cat_key): continue
         search_conditions, search_params = build_search_conditions(q, cat_key if cat_key in ('unique', 'set') else "")
-
-        # Combine all conditions
         all_conditions = search_conditions + cat_config['extra_conditions']
         all_params = search_params + cat_config['extra_params']
-
-        # Get sort order
         order_by = get_sort_order(sort, cat_key)
 
-        # Execute queries
-        cat_items = execute_category_query(
-            cat_config['table'], cat_config['category_name'],
-            all_conditions, all_params, order_by, per_page, offset
-        )
+        cat_items = execute_category_query(cat_config['table'], cat_config['category_name'], all_conditions, all_params, order_by, per_page, offset)
         items.extend(cat_items)
-
-        cat_count = execute_category_query(
-            cat_config['table'], cat_config['category_name'],
-            all_conditions, all_params, order_by, per_page, offset, count_only=True
-        )
+        cat_count = execute_category_query(cat_config['table'], cat_config['category_name'], all_conditions, all_params, order_by, per_page, offset, count_only=True)
         total_count += cat_count
 
-    # Calculate pagination
     total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+    return {
+        'items': items,
+        'total_count': total_count,
+        'total_pages': total_pages,
+        'page': page,
+        'per_page': per_page
+    }
 
-    return render_template('index.html', items=items, request=request, lang=lang,
-                                   page=page, total_pages=total_pages, total_count=total_count, per_page=per_page)
+@app.route('/')
+def index():
+    lang = safe_str(request.args.get('lang', 'zh'))
+    data = get_filtered_items(request.args)
+    return render_template('index.html', **data, request=request, lang=lang)
+
+@app.route('/api/items')
+def api_items():
+    lang = safe_str(request.args.get('lang', 'zh'))
+    data = get_filtered_items(request.args)
+    # Translate types/props if needed in API? 
+    # For now, just return raw data as requested for AJAX integration
+    return jsonify(data)
 
 # 我的物品管理路由
 @app.route('/my-items')

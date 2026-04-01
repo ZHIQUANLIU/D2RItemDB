@@ -3,15 +3,27 @@
 <div class="container">
         <h1>{% if lang == 'zh' %}添加物品{% else %}Add Item{% endif %}</h1>
         
-        <div class="upload-section">
-            <div style="cursor:pointer;" onclick="document.getElementById('file-input').click()">
-                <div style="font-size:2em;margin-bottom:10px;">📷</div>
-                <div>{% if lang == 'zh' %}点击上传物品截图，自动识别属性{% else %}Click to upload item screenshot, auto-recognize stats{% endif %}</div>
-                <div style="font-size:0.8em;color:#666;margin-top:5px;">PNG, JPG, GIF</div>
+        <div class="upload-section glass-panel" style="padding: 30px; text-align: center; border-style: dashed; border-width: 2px;">
+            <div id="drop-zone" style="cursor:pointer;" onclick="document.getElementById('file-input').click()">
+                <div style="font-size:3em;margin-bottom:15px; filter: drop-shadow(0 0 10px var(--text-primary));">✨</div>
+                <div style="font-size:1.2em; font-weight:600; color: var(--text-primary);">{% if lang == 'zh' %}AI 智能识别物品属性{% else %}AI Smart Recognition{% endif %}</div>
+                <div style="margin-top:10px; color: var(--text-muted);">{% if lang == 'zh' %}点击或拖拽物品截图，由 Gemini 强力支持{% else %}Click or drag screenshot, powered by Gemini{% endif %}</div>
+                <div style="font-size:0.8em;color:var(--border-dim);margin-top:5px;">PNG, JPG, WebP</div>
             </div>
-            <input type="file" id="file-input" accept="image/*" onchange="uploadImage(this)">
-            <img id="preview" class="upload-preview">
-            <div id="ocr-status" class="ocr-status"></div>
+            <input type="file" id="file-input" accept="image/*" onchange="uploadImage(this)" style="display:none;">
+            
+            <div id="ocr-review-container" style="display:none; margin-top: 25px; border-top: 1px solid var(--border-dim); padding-top: 20px; text-align: left;">
+                <div style="display:flex; gap:20px; align-items: flex-start;">
+                    <img id="preview" class="upload-preview" style="max-width:250px; border-radius: var(--radius-md); box-shadow: var(--shadow-glow);">
+                    <div style="flex:1;">
+                        <div class="section-title" style="margin-bottom: 15px;">{% if lang == 'zh' %}AI 识别结果预览{% else %}AI Recognition Result{% endif %}</div>
+                        <div id="ocr-status" class="ocr-status" style="margin-bottom:15px; font-weight:600;"></div>
+                        <div id="ocr-stats-summary" style="font-size: 0.9em; line-height: 1.6; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px;">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <form method="post" id="item-form">
@@ -383,7 +395,12 @@
                 formData.append('file', file);
                 
                 const status = document.getElementById('ocr-status');
-                status.innerHTML = '<span class="ocr-loading">{% if lang == "zh" %}正在识别图片...{% else %}Recognizing image...{% endif %}</span>';
+                const review = document.getElementById('ocr-review-container');
+                const summary = document.getElementById('ocr-stats-summary');
+                
+                review.style.display = 'block';
+                status.innerHTML = '<span class="ocr-loading">⚡ {% if lang == "zh" %}Gemini 正在分析中...{% else %}Gemini is analyzing...{% endif %}</span>';
+                summary.innerHTML = '{% if lang == "zh" %}正在提取复杂的魔法属性与数值...{% else %}Extracting complex magical properties...{% endif %}';
                 
                 fetch('/upload-item-image', {
                     method: 'POST',
@@ -392,60 +409,51 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        document.getElementById('preview').src = data.image_url;
-                        document.getElementById('preview').style.display = 'block';
-                        status.innerHTML = '<span class="ocr-success">{% if lang == "zh" %}识别成功！请检查下方属性{% else %}Recognition successful!{% endif %}</span>';
-                        
                         const item = data.item_data;
+                        document.getElementById('preview').src = data.image_url;
+                        status.innerHTML = '<span class="ocr-success">✅ {% if lang == "zh" %}识别已完成！{% else %}Recognition Complete!{% endif %}</span>';
+                        
+                        // Populate basic stats in summary
+                        let summaryHtml = `<b>${item.item_name || 'Unknown Item'}</b><br>`;
+                        if (item.defense) summaryHtml += `🛡️ Defense: ${item.defense}<br>`;
+                        if (item.req_level) summaryHtml += `📊 Level Req: ${item.req_level}<br>`;
+                        if (item.other_stats && item.other_stats.length > 0) {
+                            summaryHtml += `<div style="margin-top:8px; font-style:italic; color:var(--color-magic);">+ ${item.other_stats.join('<br>+ ')}</div>`;
+                        }
+                        summary.innerHTML = summaryHtml;
+
+                        // Auto-fill the actual form
                         if (item.item_name) document.getElementById('item_id').value = item.item_name;
-                        if (item.req_level) setFormValue('req_level', item.req_level);
-                        if (item.req_str) setFormValue('req_str', item.req_str);
-                        if (item.req_dex) setFormValue('req_dex', item.req_dex);
-                        if (item.defense) setFormValue('defense', item.defense);
-                        if (item.enhanced_defense) setFormValue('enhanced_defense', item.enhanced_defense);
-                        if (item.damage_min) setFormValue('damage_min', item.damage_min);
-                        if (item.damage_max) setFormValue('damage_max', item.damage_max);
-                        if (item.durability) setFormValue('durability', item.durability);
-                        if (item.sockets) setFormValue('sockets', item.sockets);
-                        if (item.str_bonus) setFormValue('str_bonus', item.str_bonus);
-                        if (item.dex_bonus) setFormValue('dex_bonus', item.dex_bonus);
-                        if (item.vit_bonus) setFormValue('vit_bonus', item.vit_bonus);
-                        if (item.ene_bonus) setFormValue('ene_bonus', item.ene_bonus);
-                        if (item.life) setFormValue('life', item.life);
-                        if (item.mana) setFormValue('mana', item.mana);
-                        if (item.skill_name) setFormValue('skill_name', item.skill_name);
-                        if (item.skill_level) setFormValue('skill_level', item.skill_level);
-                        if (item.ias) setFormValue('ias', item.ias);
-                        if (item.fcr) setFormValue('fcr', item.fcr);
-                        if (item.fhr) setFormValue('fhr', item.fhr);
-                        if (item.frw) setFormValue('frw', item.frw);
-                        if (item.res_fire) setFormValue('res_fire', item.res_fire);
-                        if (item.res_cold) setFormValue('res_cold', item.res_cold);
-                        if (item.res_ltng) setFormValue('res_ltng', item.res_ltng);
-                        if (item.res_pois) setFormValue('res_pois', item.res_pois);
-                        if (item.res_all) setFormValue('res_all', item.res_all);
-                        if (item.mf) setFormValue('mf', item.mf);
-                        if (item.life_steal) setFormValue('life_steal', item.life_steal);
-                        if (item.mana_steal) setFormValue('mana_steal', item.mana_steal);
-                        if (item.life_after_kill) setFormValue('life_after_kill', item.life_after_kill);
-                        if (item.mana_after_kill) setFormValue('mana_after_kill', item.mana_after_kill);
+                        if (item.item_color) {
+                            const typeSelect = document.getElementById('item_type');
+                            if (item.item_color === 'unique') typeSelect.value = 'unique';
+                            else if (item.item_color === 'set') typeSelect.value = 'set';
+                            else if (['magic', 'rare', 'craft'].includes(item.item_color)) typeSelect.value = item.item_color;
+                            updateItems();
+                        }
+
+                        // Fill all matching number inputs
+                        Object.keys(item).forEach(key => {
+                            if (typeof item[key] === 'number' && key !== 'cannot_be_frozen' && key !== 'is_ethereal') {
+                                setFormValue(key, item[key]);
+                            }
+                        });
+
+                        if (item.durability && Array.isArray(item.durability)) {
+                            setFormValue('durability', item.durability[1]); // Fill max durability
+                        } else if (typeof item.durability === 'number') {
+                            setFormValue('durability', item.durability);
+                        }
+
                         if (item.cannot_be_frozen) document.getElementById('cannot_be_frozen').checked = true;
                         if (item.is_ethereal) document.getElementById('is_ethereal').checked = true;
-                        if (item.add_fire_min) setFormValue('add_fire_min', item.add_fire_min);
-                        if (item.add_fire_max) setFormValue('add_fire_max', item.add_fire_max);
-                        if (item.add_cold_min) setFormValue('add_cold_min', item.add_cold_min);
-                        if (item.add_cold_max) setFormValue('add_cold_max', item.add_cold_max);
-                        if (item.add_ltng_min) setFormValue('add_ltng_min', item.add_ltng_min);
-                        if (item.add_ltng_max) setFormValue('add_ltng_max', item.add_ltng_max);
-                        if (item.add_pois_min) setFormValue('add_pois_min', item.add_pois_min);
-                        if (item.add_pois_max) setFormValue('add_pois_max', item.add_pois_max);
-                        if (item.absorb_fire) setFormValue('absorb_fire', item.absorb_fire);
-                        if (item.absorb_cold) setFormValue('absorb_cold', item.absorb_cold);
-                        if (item.absorb_ltng) setFormValue('absorb_ltng', item.absorb_ltng);
-                        if (item.crushing_blow) setFormValue('crushing_blow', item.crushing_blow);
-                        if (item.deadly_strike) setFormValue('deadly_strike', item.deadly_strike);
-                        if (item.open_wounds) setFormValue('open_wounds', item.open_wounds);
                         
+                        // Add notes if other stats were found but not mapped
+                        if (item.other_stats && item.other_stats.length > 0) {
+                            const notesEl = document.querySelector('textarea[name="notes"]');
+                            if (notesEl) notesEl.value = (notesEl.value ? notesEl.value + '\n' : '') + item.other_stats.join('\n');
+                        }
+
                         let imgInput = document.getElementById('image_path');
                         if (!imgInput) {
                             imgInput = document.createElement('input');
@@ -456,7 +464,8 @@
                         }
                         imgInput.value = data.image_url;
                     } else {
-                        status.innerHTML = '<span class="ocr-error">' + (data.error || 'Error') + '</span>';
+                        status.innerHTML = `<span class="ocr-error">❌ ${data.error || 'Error'}</span>`;
+                        summary.innerHTML = '{% if lang == "zh" %}无法识别图像，请尝试换一张清晰的截图。{% else %}Failed to recognize, try a clearer screenshot.{% endif %}';
                     }
                 })
                 .catch(error => {
