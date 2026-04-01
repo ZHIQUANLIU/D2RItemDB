@@ -1,0 +1,573 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>添加物品 | Add Item</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a14; color: #ccc; min-height: 100vh; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #f0c040; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #aaa; font-weight: 500; font-size: 0.9em; }
+        .col label { min-height: 20px; }
+        input, select, textarea { width: 100%; padding: 10px; background: #1a1a2a; color: #fff; border: 1px solid #333; border-radius: 4px; }
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+        .btn { padding: 10px 20px; background: #4a4a5a; color: #fff; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-primary { background: #f0c040; color: #000; }
+        .btn:hover { opacity: 0.8; }
+        .checkbox-group { display: flex; gap: 20px; align-items: center; }
+        .form-section-title { color: #f0c040; border-bottom: 1px solid #444; padding-bottom: 5px; display: block; margin-bottom: 10px; font-weight: 600; }
+        .upload-section { background: #1a1a30; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px dashed #444; text-align: center; }
+        .upload-section:hover { border-color: #f0c040; }
+        .upload-section input[type="file"] { display: none; }
+        .upload-preview { max-width: 100%; max-height: 200px; margin-top: 10px; display: none; }
+        .ocr-status { margin-top: 10px; color: #888; }
+        .ocr-loading { color: #f0c040; }
+        .ocr-success { color: #4f4; }
+        .ocr-error { color: #f44; }
+        input.filled { border-color: #4a90d9 !important; background: #1a2a3a; }
+        input:focus { outline: none; border-color: #f0c040; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{% if lang == 'zh' %}添加物品{% else %}Add Item{% endif %}</h1>
+        
+        <div class="upload-section">
+            <div style="cursor:pointer;" onclick="document.getElementById('file-input').click()">
+                <div style="font-size:2em;margin-bottom:10px;">📷</div>
+                <div>{% if lang == 'zh' %}点击上传物品截图，自动识别属性{% else %}Click to upload item screenshot, auto-recognize stats{% endif %}</div>
+                <div style="font-size:0.8em;color:#666;margin-top:5px;">PNG, JPG, GIF</div>
+            </div>
+            <input type="file" id="file-input" accept="image/*" onchange="uploadImage(this)">
+            <img id="preview" class="upload-preview">
+            <div id="ocr-status" class="ocr-status"></div>
+        </div>
+        
+        <form method="post" id="item-form">
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}物品类型{% else %}Item Type{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <select name="item_type" id="item_type" onchange="updateItems()">
+                            <option value="normal">{% if lang == 'zh' %}普通(基础){% else %}Normal (Base){% endif %}</option>
+                            <option value="magic">{% if lang == 'zh' %}魔法{% else %}Magic{% endif %}</option>
+                            <option value="rare">{% if lang == 'zh' %}稀有{% else %}Rare{% endif %}</option>
+                            <option value="unique">{% if lang == 'zh' %}暗金{% else %}Unique{% endif %}</option>
+                            <option value="set">{% if lang == 'zh' %}套装{% else %}Set{% endif %}</option>
+                            <option value="runeword">{% if lang == 'zh' %}符文之语{% else %}Runeword{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="item_id" id="item_id" list="item_list" placeholder="{% if lang == 'zh' %}输入搜索物品名称...{% else %}Search item name...{% endif %}">
+                        <datalist id="item_list"></datalist>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}战网账户{% else %}Battle.net Account{% endif %}</label>
+                <input type="text" name="account" id="account_input" list="account_list" placeholder="{% if lang == 'zh' %}输入或选择账户{% else %}Type or select account{% endif %}" oninput="filterCharacters()" onchange="filterCharacters()" required>
+                <datalist id="account_list">
+                    {% for acc in accounts %}
+                    <option value="{{ acc[1] }}">{{ acc[1] }}</option>
+                    {% endfor %}
+                </datalist>
+                <div style="margin-top:5px;font-size:12px;color:#666;">
+                    <a href="/accounts?lang={{ lang }}" target="_blank">{% if lang == 'zh' %}管理账户和角色{% else %}Manage Accounts & Characters{% endif %}</a>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}存储位置{% else %}Storage Location{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <select name="storage_type" id="storage_type" onchange="toggleCharacter()" required>
+                            <option value="stash">{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</option>
+                            <option value="character">{% if lang == 'zh' %}角色背包{% else %}Character Inventory{% endif %}</option>
+                            <option value="shared">{% if lang == 'zh' %}共享箱{% else %}Shared Stash{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col" id="char_col">
+                        <input type="text" name="character_name" id="character_input" list="character_list" placeholder="{% if lang == 'zh' %}输入或选择角色{% else %}Type or select character{% endif %}">
+                        <datalist id="character_list"></datalist>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="storage_name" placeholder="{% if lang == 'zh' %}箱子名(可选){% else %}Stash Name (optional){% endif %}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}物品属性{% else %}Item Stats{% endif %}</label>
+                
+                <div class="row">
+                    <div class="col"><label>{% if lang == 'zh' %}等级需求{% else %}Req Level{% endif %}</label><input type="number" name="req_level"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}力量需求{% else %}Req Str{% endif %}</label><input type="number" name="req_str"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}敏捷需求{% else %}Req Dex{% endif %}</label><input type="number" name="req_dex"></div>
+                </div>
+                
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>{% if lang == 'zh' %}防御{% else %}Defense{% endif %}</label><input type="number" name="defense"></div>
+                    <div class="col"><label>ED%</label><input type="number" name="enhanced_defense"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}孔数{% else %}Sockets{% endif %}</label><input type="number" name="sockets"></div>
+                </div>
+                
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>{% if lang == 'zh' %}耐久度{% else %}Durability{% endif %}</label><input type="number" name="durability"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}伤害(最小){% else %}Dmg Min{% endif %}</label><input type="number" name="damage_min"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}伤害(最大){% else %}Dmg Max{% endif %}</label><input type="number" name="damage_max"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}属性加成{% else %}Stat Bonuses{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>+Str</label><input type="number" name="str_bonus"></div>
+                    <div class="col"><label>+Dex</label><input type="number" name="dex_bonus"></div>
+                    <div class="col"><label>+Vit</label><input type="number" name="vit_bonus"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>+Ene</label><input type="number" name="ene_bonus"></div>
+                    <div class="col"><label>+Life</label><input type="number" name="life"></div>
+                    <div class="col"><label>+Mana</label><input type="number" name="mana"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}技能{% else %}Skills{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <label>{% if lang == 'zh' %}技能名称{% else %}Skill Name{% endif %}</label>
+                        <input type="text" name="skill_name" list="skill_list">
+                        <datalist id="skill_list">
+                            <option value="Fire Ball">
+                            <option value="Meteor">
+                            <option value="Blizzard">
+                            <option value="Frozen Orb">
+                            <option value="Chain Lightning">
+                            <option value="Thunder Storm">
+                            <option value="Blaze">
+                            <option value="Fire Wall">
+                            <option value="Enchant">
+                            <option value="Warmth">
+                            <option value="Teleport">
+                            <option value="Static Field">
+                            <option value="Nova">
+                            <option value="Lightning">
+                            <option value="Ice Blast">
+                            <option value="Glacial Spike">
+                            <option value="Frost Nova">
+                            <option value="Shiver Armor">
+                            <option value="Cold Mastery">
+                            <option value="Fire Mastery">
+                            <option value="Lightning Mastery">
+                            <option value="Holy Bolt">
+                            <option value="Holy Fire">
+                            <option value="Holy Freeze">
+                            <option value="Holy Shock">
+                            <option value="Vengeance">
+                            <option value="Judgment">
+                            <option value="Fist of the Heavens">
+                            <option value="Smite">
+                            <option value="Holy Shield">
+                            <option value="Charge">
+                            <option value="Blessed Aim">
+                            <option value="Fanaticism">
+                            <option value="Conviction">
+                            <option value="Resist Lightning">
+                            <option value="Resist Fire">
+                            <option value="Resist Cold">
+                            <option value="Salvation">
+                            <option value="Might">
+                            <option value="Powerful">
+                            <option value="Holy Freeze">
+                            <option value="Weapon Block">
+                            <option value="Sanctuary">
+                            <option value="Meditation">
+                            <option value="Fury">
+                            <option value="Werewolf">
+                            <option value="Lycanthropy">
+                            <option value="Feral Rage">
+                            <option value="Maul">
+                            <option value="Rabies">
+                            <option value="Fire Claws">
+                            <option value="Hunger">
+                            <option value="Shock Wave">
+                            <option value="Tornado">
+                            <option value="Hurricane">
+                            <option value="Armageddon">
+                            <option value="Volcano">
+                            <option value="Corpse Explosion">
+                            <option value="Bone Spear">
+                            <option value="Bone Spirit">
+                            <option value="Poison Nova">
+                            <option value="Poison Explosion">
+                            <option value="Teeth">
+                            <option value="Bone Wall">
+                            <option value="Bone Prison">
+                            <option value="Summon Resist">
+                            <option value="Iron Maiden">
+                            <option value="Life Tap">
+                            <option value="Attract">
+                            <option value="Dim Vision">
+                            <option value="Confuse">
+                            <option value="Amplify Damage">
+                            <option value="Decrepify">
+                            <option value="Lower Resist">
+                            <option value="Potion Heal">
+                            <option value="Potion Mana">
+                            <option value="Teleporter">
+                            <option value="Skill 1">
+                            <option value="Skill 2">
+                            <option value="All Skills">
+                        </datalist>
+                    </div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能等级{% else %}Skill Level{% endif %}</label><input type="number" name="skill_level"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}触发技能 (CTC) #1{% else %}Chance to Cast (CTC) #1{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <label>{% if lang == 'zh' %}触发条件{% else %}Trigger{% endif %}</label>
+                        <select name="ctc_trigger">
+                            <option value="">-</option>
+                            <option value="when struck">{% if lang == 'zh' %}被击中时{% else %}When Struck{% endif %}</option>
+                            <option value="on attack">{% if lang == 'zh' %}攻击时{% else %}On Attack{% endif %}</option>
+                            <option value="on kill">{% if lang == 'zh' %}击杀时{% else %}On Kill{% endif %}</option>
+                            <option value="on death">{% if lang == 'zh' %}死亡时{% else %}On Death{% endif %}</option>
+                            <option value="on hit">{% if lang == 'zh' %}击中时{% else %}On Hit{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能名称{% else %}Skill Name{% endif %}</label><input type="text" name="ctc_skill_name"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能等级{% else %}Skill Lvl{% endif %}</label><input type="number" name="ctc_skill_level"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}触发技能 (CTC) #2{% else %}Chance to Cast (CTC) #2{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <label>{% if lang == 'zh' %}触发条件{% else %}Trigger{% endif %}</label>
+                        <select name="ctc_trigger2">
+                            <option value="">-</option>
+                            <option value="when struck">{% if lang == 'zh' %}被击中时{% else %}When Struck{% endif %}</option>
+                            <option value="on attack">{% if lang == 'zh' %}攻击时{% else %}On Attack{% endif %}</option>
+                            <option value="on kill">{% if lang == 'zh' %}击杀时{% else %}On Kill{% endif %}</option>
+                            <option value="on death">{% if lang == 'zh' %}死亡时{% else %}On Death{% endif %}</option>
+                            <option value="on hit">{% if lang == 'zh' %}击中时{% else %}On Hit{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能名称{% else %}Skill Name{% endif %}</label><input type="text" name="ctc_skill_name2"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能等级{% else %}Skill Lvl{% endif %}</label><input type="number" name="ctc_skill_level2"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}触发技能 (CTC) #3{% else %}Chance to Cast (CTC) #3{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <label>{% if lang == 'zh' %}触发条件{% else %}Trigger{% endif %}</label>
+                        <select name="ctc_trigger3">
+                            <option value="">-</option>
+                            <option value="when struck">{% if lang == 'zh' %}被击中时{% else %}When Struck{% endif %}</option>
+                            <option value="on attack">{% if lang == 'zh' %}攻击时{% else %}On Attack{% endif %}</option>
+                            <option value="on kill">{% if lang == 'zh' %}击杀时{% else %}On Kill{% endif %}</option>
+                            <option value="on death">{% if lang == 'zh' %}死亡时{% else %}On Death{% endif %}</option>
+                            <option value="on hit">{% if lang == 'zh' %}击中时{% else %}On Hit{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能名称{% else %}Skill Name{% endif %}</label><input type="text" name="ctc_skill_name3"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}技能等级{% else %}Skill Lvl{% endif %}</label><input type="number" name="ctc_skill_level3"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}速度/施法/格挡{% else %}Speed/Cast/Block{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>IAS%</label><input type="number" name="ias"></div>
+                    <div class="col"><label>FCR%</label><input type="number" name="fcr"></div>
+                    <div class="col"><label>FHR%</label><input type="number" name="fhr"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>FRW%</label><input type="number" name="frw"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}抗性{% else %}Resistances{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>{% if lang == 'zh' %}火抗{% else %}Fire Res{% endif %}</label><input type="number" name="res_fire"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}冰抗{% else %}Cold Res{% endif %}</label><input type="number" name="res_cold"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}电抗{% else %}Ltng Res{% endif %}</label><input type="number" name="res_ltng"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>{% if lang == 'zh' %}毒抗{% else %}Poison Res{% endif %}</label><input type="number" name="res_pois"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}全抗{% else %}All Res{% endif %}</label><input type="number" name="res_all"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}吸收{% else %}Absorb{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>{% if lang == 'zh' %}火吸收{% else %}Fire Abs{% endif %}</label><input type="number" name="absorb_fire"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}冰吸收{% else %}Cold Abs{% endif %}</label><input type="number" name="absorb_cold"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}电吸收{% else %}Ltng Abs{% endif %}</label><input type="number" name="absorb_ltng"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}元素伤害{% else %}Elemental Damage{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>{% if lang == 'zh' %}火伤min{% else %}Fire Min{% endif %}</label><input type="number" name="add_fire_min"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}火伤max{% else %}Fire Max{% endif %}</label><input type="number" name="add_fire_max"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}冰伤min{% else %}Cold Min{% endif %}</label><input type="number" name="add_cold_min"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>{% if lang == 'zh' %}冰伤max{% else %}Cold Max{% endif %}</label><input type="number" name="add_cold_max"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}电伤min{% else %}Ltng Min{% endif %}</label><input type="number" name="add_ltng_min"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}电伤max{% else %}Ltng Max{% endif %}</label><input type="number" name="add_ltng_max"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>{% if lang == 'zh' %}毒伤min{% else %}Poison Min{% endif %}</label><input type="number" name="add_pois_min"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}毒伤max{% else %}Poison Max{% endif %}</label><input type="number" name="add_pois_max"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}MF/GF/偷取{% else %}MF/GF/Life-Mana{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>MF%</label><input type="number" name="mf"></div>
+                    <div class="col"><label>EG%</label><input type="number" name="eg"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}生命偷取%{% else %}Life Steal{% endif %}</label><input type="number" name="life_steal"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>{% if lang == 'zh' %}魔法偷取%{% else %}Mana Steal{% endif %}</label><input type="number" name="mana_steal"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}击杀生命{% else %}Life/Kill{% endif %}</label><input type="number" name="life_after_kill"></div>
+                    <div class="col"><label>{% if lang == 'zh' %}击杀魔法{% else %}Mana/Kill{% endif %}</label><input type="number" name="mana_after_kill"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:#f0c040;border-bottom:1px solid #444;padding-bottom:5px;display:block;margin-bottom:10px;">{% if lang == 'zh' %}攻击属性{% else %}Combat Stats{% endif %}</label>
+                <div class="row">
+                    <div class="col"><label>AR%</label><input type="number" name="attack_rating"></div>
+                    <div class="col"><label>+AR</label><input type="number" name="attack_rating_plus"></div>
+                    <div class="col"><label>CB%</label><input type="number" name="crushing_blow"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><label>DS%</label><input type="number" name="deadly_strike"></div>
+                    <div class="col"><label>OW%</label><input type="number" name="open_wounds"></div>
+                </div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <input type="checkbox" name="cannot_be_frozen" id="cannot_be_frozen" style="width:auto;">
+                <label for="cannot_be_frozen" style="display:inline;margin:0;">{% if lang == 'zh' %}无法冰冻{% else %}Cannot Be Frozen{% endif %}</label>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <input type="checkbox" name="is_ethereal" id="is_ethereal" style="width:auto;">
+                <label for="is_ethereal" style="display:inline;margin:0;">{% if lang == 'zh' %}无形{% else %}Ethereal{% endif %}</label>
+                <span style="width:20px"></span>
+                <input type="checkbox" name="is_artifact" id="is_artifact" style="width:auto;">
+                <label for="is_artifact" style="display:inline;margin:0;">{% if lang == 'zh' %}神器{% else %}Artifact{% endif %}</label>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}备注{% else %}Notes{% endif %}</label>
+                <textarea name="notes" rows="3" placeholder="{% if lang == 'zh' %}其他信息...{% else %}Additional info...{% endif %}"></textarea>
+            </div>
+            
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn btn-primary">{% if lang == 'zh' %}保存{% else %}Save{% endif %}</button>
+                <a href="/my-items?lang={{ lang }}" class="btn">{% if lang == 'zh' %}取消{% else %}Cancel{% endif %}</a>
+            </div>
+        </form>
+    </div>
+    <script>
+        const uniqueItems = {{ unique_items|tojson }};
+        const setItems = {{ set_items|tojson }};
+        const weapons = {{ weapons|tojson }};
+        const armors = {{ armors|tojson }};
+        const miscItems = {{ misc_items|tojson }};
+        
+        function updateItems() {
+            const type = document.getElementById('item_type').value;
+            const datalist = document.getElementById('item_list');
+            datalist.innerHTML = '';
+            
+            let items = [];
+            if (type === 'unique') items = uniqueItems;
+            else if (type === 'set') items = setItems;
+            else if (type === 'normal') items = [...weapons, ...armors, ...miscItems];
+            else if (type === 'magic') items = [...weapons, ...armors, ...miscItems];
+            else if (type === 'rare') items = [...weapons, ...armors, ...miscItems];
+            else if (type === 'runeword') items = [...weapons, ...armors, ...miscItems];
+            
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item[0];
+                opt.textContent = item[0] + (item[1] ? ' (' + item[1] + ')' : '');
+                datalist.appendChild(opt);
+            });
+        }
+        
+        function uploadImage(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const status = document.getElementById('ocr-status');
+                status.innerHTML = '<span class="ocr-loading">{% if lang == "zh" %}正在识别图片...{% else %}Recognizing image...{% endif %}</span>';
+                
+                fetch('/upload-item-image', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('preview').src = data.image_url;
+                        document.getElementById('preview').style.display = 'block';
+                        status.innerHTML = '<span class="ocr-success">{% if lang == "zh" %}识别成功！请检查下方属性{% else %}Recognition successful!{% endif %}</span>';
+                        
+                        const item = data.item_data;
+                        if (item.item_name) document.getElementById('item_id').value = item.item_name;
+                        if (item.req_level) setFormValue('req_level', item.req_level);
+                        if (item.req_str) setFormValue('req_str', item.req_str);
+                        if (item.req_dex) setFormValue('req_dex', item.req_dex);
+                        if (item.defense) setFormValue('defense', item.defense);
+                        if (item.enhanced_defense) setFormValue('enhanced_defense', item.enhanced_defense);
+                        if (item.damage_min) setFormValue('damage_min', item.damage_min);
+                        if (item.damage_max) setFormValue('damage_max', item.damage_max);
+                        if (item.durability) setFormValue('durability', item.durability);
+                        if (item.sockets) setFormValue('sockets', item.sockets);
+                        if (item.str_bonus) setFormValue('str_bonus', item.str_bonus);
+                        if (item.dex_bonus) setFormValue('dex_bonus', item.dex_bonus);
+                        if (item.vit_bonus) setFormValue('vit_bonus', item.vit_bonus);
+                        if (item.ene_bonus) setFormValue('ene_bonus', item.ene_bonus);
+                        if (item.life) setFormValue('life', item.life);
+                        if (item.mana) setFormValue('mana', item.mana);
+                        if (item.skill_name) setFormValue('skill_name', item.skill_name);
+                        if (item.skill_level) setFormValue('skill_level', item.skill_level);
+                        if (item.ias) setFormValue('ias', item.ias);
+                        if (item.fcr) setFormValue('fcr', item.fcr);
+                        if (item.fhr) setFormValue('fhr', item.fhr);
+                        if (item.frw) setFormValue('frw', item.frw);
+                        if (item.res_fire) setFormValue('res_fire', item.res_fire);
+                        if (item.res_cold) setFormValue('res_cold', item.res_cold);
+                        if (item.res_ltng) setFormValue('res_ltng', item.res_ltng);
+                        if (item.res_pois) setFormValue('res_pois', item.res_pois);
+                        if (item.res_all) setFormValue('res_all', item.res_all);
+                        if (item.mf) setFormValue('mf', item.mf);
+                        if (item.life_steal) setFormValue('life_steal', item.life_steal);
+                        if (item.mana_steal) setFormValue('mana_steal', item.mana_steal);
+                        if (item.life_after_kill) setFormValue('life_after_kill', item.life_after_kill);
+                        if (item.mana_after_kill) setFormValue('mana_after_kill', item.mana_after_kill);
+                        if (item.cannot_be_frozen) document.getElementById('cannot_be_frozen').checked = true;
+                        if (item.is_ethereal) document.getElementById('is_ethereal').checked = true;
+                        if (item.add_fire_min) setFormValue('add_fire_min', item.add_fire_min);
+                        if (item.add_fire_max) setFormValue('add_fire_max', item.add_fire_max);
+                        if (item.add_cold_min) setFormValue('add_cold_min', item.add_cold_min);
+                        if (item.add_cold_max) setFormValue('add_cold_max', item.add_cold_max);
+                        if (item.add_ltng_min) setFormValue('add_ltng_min', item.add_ltng_min);
+                        if (item.add_ltng_max) setFormValue('add_ltng_max', item.add_ltng_max);
+                        if (item.add_pois_min) setFormValue('add_pois_min', item.add_pois_min);
+                        if (item.add_pois_max) setFormValue('add_pois_max', item.add_pois_max);
+                        if (item.absorb_fire) setFormValue('absorb_fire', item.absorb_fire);
+                        if (item.absorb_cold) setFormValue('absorb_cold', item.absorb_cold);
+                        if (item.absorb_ltng) setFormValue('absorb_ltng', item.absorb_ltng);
+                        if (item.crushing_blow) setFormValue('crushing_blow', item.crushing_blow);
+                        if (item.deadly_strike) setFormValue('deadly_strike', item.deadly_strike);
+                        if (item.open_wounds) setFormValue('open_wounds', item.open_wounds);
+                        
+                        let imgInput = document.getElementById('image_path');
+                        if (!imgInput) {
+                            imgInput = document.createElement('input');
+                            imgInput.type = 'hidden';
+                            imgInput.name = 'image_path';
+                            imgInput.id = 'image_path';
+                            document.getElementById('item-form').appendChild(imgInput);
+                        }
+                        imgInput.value = data.image_url;
+                    } else {
+                        status.innerHTML = '<span class="ocr-error">' + (data.error || 'Error') + '</span>';
+                    }
+                })
+                .catch(error => {
+                    status.innerHTML = '<span class="ocr-error">Error: ' + error + '</span>';
+                });
+            }
+        }
+        
+        function setFormValue(name, value) {
+            const el = document.querySelector('input[name="' + name + '"]');
+            if (el) {
+                el.value = value;
+                el.classList.add('filled');
+            }
+        }
+        
+        updateItems();
+        
+        const accountsData = {{ accounts|tojson }};
+        const charactersData = {{ characters|tojson }};
+        
+        function filterCharacters() {
+            const accountInput = document.getElementById('account_input');
+            const characterList = document.getElementById('character_list');
+            const selectedAccount = accountInput.value.trim();
+            
+            characterList.innerHTML = '';
+            
+            if (!selectedAccount) {
+                charactersData.forEach(char => {
+                    const opt = document.createElement('option');
+                    opt.value = char[2];
+                    opt.textContent = char[2] + (char[3] ? ' (' + char[3] + ')' : '');
+                    characterList.appendChild(opt);
+                });
+                return;
+            }
+            
+            const matchedAccount = accountsData.find(acc => acc[1] === selectedAccount);
+            if (!matchedAccount) {
+                return;
+            }
+            
+            const accountId = matchedAccount[0];
+            const filteredChars = charactersData.filter(char => char[1] === accountId);
+            
+            filteredChars.forEach(char => {
+                const opt = document.createElement('option');
+                opt.value = char[2];
+                opt.textContent = char[2] + (char[3] ? ' (' + char[3] + ')' : '');
+                characterList.appendChild(opt);
+            });
+        }
+        
+        function toggleCharacter() {
+            const storageType = document.getElementById('storage_type').value;
+            const charCol = document.getElementById('char_col');
+            const charInput = document.getElementById('character_input');
+            
+            if (storageType === 'character') {
+                charCol.style.display = 'block';
+                charInput.required = true;
+            } else {
+                charCol.style.display = 'block';
+                charInput.required = false;
+            }
+        }
+        
+        filterCharacters();
+    </script>
+</body>
+</html>

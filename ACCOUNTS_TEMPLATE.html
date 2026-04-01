@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% if lang == 'zh' %}账户管理{% else %}Account Management{% endif %}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a14; color: #ccc; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #f0c040; }
+        .section { background: #1a1a30; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #aaa; }
+        input, select { width: 100%; padding: 10px; background: #1a1a2a; color: #fff; border: 1px solid #333; border-radius: 4px; }
+        .row { display: flex; gap: 10px; }
+        .col { flex: 1; }
+        .btn { padding: 10px 20px; background: #f0c040; color: #000; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-danger { background: #d44; color: #fff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #f0c040; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{% if lang == 'zh' %}账户和角色管理{% else %}Account & Character Management{% endif %}</h1>
+        
+        <div class="section">
+            <h2>{% if lang == 'zh' %}添加账户{% else %}Add Account{% endif %}</h2>
+            <form method="post">
+                <input type="hidden" name="action" value="add_account">
+                <div class="row">
+                    <div class="col">
+                        <input type="text" name="account_name" placeholder="{% if lang == 'zh' %}账户名 (如 account#1){% else %}Account name (e.g. account#1){% endif %}" required>
+                    </div>
+                    <div class="col">
+                        <input type="text" name="notes" placeholder="{% if lang == 'zh' %}备注{% else %}Notes{% endif %}">
+                    </div>
+                    <div class="col">
+                        <button type="submit" class="btn">{% if lang == 'zh' %}添加账户{% else %}Add Account{% endif %}</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="section">
+            <h2>{% if lang == 'zh' %}账户列表{% else %}Accounts{% endif %}</h2>
+            <table>
+                <tr>
+                    <th>{% if lang == 'zh' %}账户{% else %}Account{% endif %}</th>
+                    <th>{% if lang == 'zh' %}备注{% else %}Notes{% endif %}</th>
+                    <th>{% if lang == 'zh' %}角色{% else %}Characters{% endif %}</th>
+                    <th>{% if lang == 'zh' %}操作{% else %}Actions{% endif %}</th>
+                </tr>
+                {% for acc in accounts %}
+                <tr>
+                    <td>{{ acc.name }}</td>
+                    <td>{{ acc.notes or '' }}</td>
+                    <td>
+                        {% for char in characters %}
+                            {% if char.account_id == acc.id %}
+                                <span style="background:#2a2a40;padding:2px 8px;border-radius:3px;margin-right:5px;">
+                                    {{ char.name }}{% if char.class %} ({{ char.class }}){% endif %}
+                                    <form method="post" style="display:inline;">
+                                        <input type="hidden" name="action" value="delete_character">
+                                        <input type="hidden" name="char_id" value="{{ char.id }}">
+                                        <button type="submit" style="background:none;border:none;color:#f44;cursor:pointer;padding:0;">×</button>
+                                    </form>
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="action" value="add_character">
+                            <input type="hidden" name="account_id" value="{{ acc.id }}">
+                            <input type="text" name="char_name" placeholder="{% if lang == 'zh' %}角色名{% else %}Character{% endif %}" style="width:100px;display:inline;padding:5px;">
+                            <select name="char_class" style="width:80px;display:inline;padding:5px;">
+                                <option value="">-</option>
+                                <option value="Amazon">Amazon</option>
+                                <option value="Sorceress">Sorceress</option>
+                                <option value="Necromancer">Necromancer</option>
+                                <option value="Paladin">Paladin</option>
+                                <option value="Barbarian">Barbarian</option>
+                                <option value="Druid">Druid</option>
+                                <option value="Assassin">Assassin</option>
+                            </select>
+                            <button type="submit" class="btn" style="padding:5px 10px;font-size:12px;">+</button>
+                        </form>
+                        <form method="post" style="display:inline;margin-left:10px;">
+                            <input type="hidden" name="action" value="delete_account">
+                            <input type="hidden" name="account_id" value="{{ acc.id }}">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('{% if lang == 'zh' %}确定删除?{% else %}Confirm delete?{% endif %}')">{% if lang == 'zh' %}删除{% else %}Delete{% endif %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        
+        <a href="/?lang={{ lang }}" class="btn">{% if lang == 'zh' %}返回{% else %}Back{% endif %}</a>
+    </div>
+</body>
+</html>

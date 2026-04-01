@@ -1,81 +1,100 @@
-# D2R Item Database (D2R物品数据库)
+<div align="center">
+  <img src="images/banner.png" alt="D2R Item Database Banner" width="100%">
+  
+  # ⚔️ D2R Item Database (D2R物品数据库)
+  
+  *A comprehensive web-based item database and inventory management system for Diablo 2 Resurrected.*
 
-A web-based item database and inventory management system for Diablo 2 Resurrected (暗黑破坏神2 重置版).
+  [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
+  [![Flask](https://img.shields.io/badge/Flask-Web%20Framework-lightgrey.svg)](https://flask.palletsprojects.com/)
+  [![SQLite](https://img.shields.io/badge/SQLite-Database-green.svg)](https://www.sqlite.org/)
+  [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+</div>
 
-## Features
+---
 
-- **Item Query**: Search and browse weapons, armor, unique items, set items, runes, gems, and misc items
-- **My Items**: Track your personal item inventory across multiple battle.net accounts
-- **Account & Character Management**: Manage multiple battle.net accounts and their characters
-- **OCR Support**: Extract item information from screenshots using EasyOCR or Google Gemini API
-- **Bilingual UI**: Full support for Chinese (中文) and English
+## ✨ Features
 
-## Data Source
+- 🔍 **Item Query**: Search and browse across thousands of weapons, armor, unique items, set items, runes, gems, and misc items.
+- 📦 **My Items**: Track your personal item inventory across multiple battle.net accounts.
+- 👥 **Account & Character Management**: Effortlessly manage multiple battle.net accounts and their characters.
+- 📸 **OCR Support**: Extract item information directly from your screenshots using EasyOCR or the Google Gemini API.
+- 🌐 **Bilingual UI**: Seamless, full support for Chinese (中文) and English interfaces.
+
+## 📊 Data Source
 
 Item data is sourced from [pinkufairy/D2R-Excel](https://github.com/pinkufairy/D2R-Excel), a comprehensive Diablo 2 Resurrected data repository.
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Backend**: Flask (Python)
+- **Backend**: Python with Flask
 - **Database**: SQLite
-- **OCR**: EasyOCR / Google Gemini API
+- **OCR Engine**: EasyOCR / Google Gemini API
+- **Frontend**: Custom HTML/CSS (Responsive Design)
 
-## Installation
+---
 
-1. Install dependencies:
+## 🚀 Installation & Setup
+
+1. **Install dependencies:**
 ```bash
 pip install flask easyocr
 ```
 
-2. (Optional) For Gemini OCR, get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. **(Optional) Obtain Gemini AI API key** 
+   For enhanced OCR capabilities, get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-3. Initialize the database:
+3. **Initialize the database:**
 ```bash
 python import_db.py
 ```
 
-## Usage
+## 🎮 Usage Guide
 
-1. Start the server:
+1. Start the Flask server:
 ```bash
 python app.py
 ```
 
-2. Open browser at `http://localhost:5000`
+2. Open your web browser and navigate to `http://localhost:5000`
+3. Check and configure OCR settings at `/settings` (optional, but recommended for automation).
+4. Add your accounts and characters at `/accounts`.
+5. Start tracking your valuable loot at `/my-items/add`!
 
-3. Configure OCR settings at `/settings` (optional)
+---
 
-4. Add accounts and characters at `/accounts`
+## 📁 Project Structure
 
-5. Start tracking your items at `/my-items/add`
-
-## Project Structure
-
-```
+```text
 D2RItemDB/
-├── app.py              # Main Flask application
+├── app.py              # Main Flask application & UI
 ├── ocr_utils.py        # OCR utilities
 ├── import_db.py        # Database initialization script
-├── settings.json       # User settings
-├── d2r_items.db        # SQLite database
-├── static/uploads/     # Uploaded item images
-└── data/               # Game data files
+├── settings.json       # User settings configuration
+├── d2r_items.db        # Primary SQLite database
+├── static/uploads/     # Uploaded item images & screenshots
+├── images/             # Documentation visuals & banners
+└── data/               # Core game data files
 ```
 
-## Database Tables
+## 🗄️ Database Schema
 
-- `weapons` - Weapon items
-- `armor` - Armor items  
-- `unique_items` - Unique (暗金) items
-- `set_items` - Set (套装) items
-- `misc` - Miscellaneous items
-- `gems` - Gems
-- `runes` - Runes
-- `accounts` - Battle.net accounts
-- `characters` - Characters
-- `my_items` - User's tracked items
-- `item_images` - Uploaded item screenshots
+| Table Name | Description |
+|---|---|
+| `weapons` | Weapon items |
+| `armor` | Armor items |
+| `unique_items` | Unique (暗金) items |
+| `set_items` | Set (套装) items |
+| `misc` | Miscellaneous items |
+| `gems` | Gems |
+| `runes` | Runes |
+| `accounts` | Battle.net accounts |
+| `characters` | User Characters |
+| `my_items` | User's tracked items |
+| `item_images` | Uploaded item screenshots |
 
-## License
+---
 
-MIT License
+## 📜 License
+
+This project is licensed under the **MIT License**.
