@@ -763,6 +763,80 @@ def api_items():
     # For now, just return raw data as requested for AJAX integration
     return jsonify(data)
 
+@app.route('/api/item-defaults')
+def get_item_defaults():
+    name = safe_str(request.args.get('name', ''))
+    if not name:
+        return jsonify(None)
+
+    db = get_db()
+    res = {}
+
+    # Try unique items first
+    u = query_db("SELECT * FROM unique_items WHERE name = ?", (name,), one=True)
+    if u:
+        res['item_type'] = 'unique'
+        if u['levelreq']: res['req_level'] = u['levelreq']
+        # Try to get base item stats via code
+        base = query_db("SELECT * FROM armor WHERE code = ?", (u['code'],), one=True)
+        if not base:
+            base = query_db("SELECT * FROM weapons WHERE code = ?", (u['code'],), one=True)
+        
+        if base:
+            if 'maxac' in base.keys() and base['maxac']: res['defense'] = base['maxac']
+            if 'mindam' in base.keys() and base['mindam']: res['damage_min'] = base['mindam']
+            if 'maxdam' in base.keys() and base['maxdam']: res['damage_max'] = base['maxdam']
+            if 'reqstr' in base.keys() and base['reqstr']: res['req_str'] = base['reqstr']
+            if 'reqdex' in base.keys() and base['reqdex']: res['req_dex'] = base['reqdex']
+            if 'gemsockets' in base.keys() and base['gemsockets']: res['sockets'] = base['gemsockets']
+            if 'durability' in base.keys() and base['durability']: res['durability'] = base['durability']
+        return jsonify(res)
+
+    # Try set items
+    s = query_db("SELECT * FROM set_items WHERE name = ?", (name,), one=True)
+    if s:
+        res['item_type'] = 'set'
+        if s['levelreq']: res['req_level'] = s['levelreq']
+        base = query_db("SELECT * FROM armor WHERE code = ?", (s['code'],), one=True)
+        if not base:
+            base = query_db("SELECT * FROM weapons WHERE code = ?", (s['code'],), one=True)
+        if base:
+            if 'maxac' in base.keys() and base['maxac']: res['defense'] = base['maxac']
+            if 'mindam' in base.keys() and base['mindam']: res['damage_min'] = base['mindam']
+            if 'maxdam' in base.keys() and base['maxdam']: res['damage_max'] = base['maxdam']
+            if 'reqstr' in base.keys() and base['reqstr']: res['req_str'] = base['reqstr']
+            if 'reqdex' in base.keys() and base['reqdex']: res['req_dex'] = base['reqdex']
+            if 'gemsockets' in base.keys() and base['gemsockets']: res['sockets'] = base['gemsockets']
+            if 'durability' in base.keys() and base['durability']: res['durability'] = base['durability']
+        return jsonify(res)
+
+    # Try base armor
+    a = query_db("SELECT * FROM armor WHERE name = ?", (name,), one=True)
+    if a:
+        res['item_type'] = 'normal'
+        if a['levelreq']: res['req_level'] = a['levelreq']
+        if a['maxac']: res['defense'] = a['maxac']
+        if a['reqstr']: res['req_str'] = a['reqstr']
+        if a['reqdex']: res['req_dex'] = a['reqdex']
+        if a['gemsockets']: res['sockets'] = a['gemsockets']
+        if a['durability']: res['durability'] = a['durability']
+        return jsonify(res)
+
+    # Try base weapons
+    w = query_db("SELECT * FROM weapons WHERE name = ?", (name,), one=True)
+    if w:
+        res['item_type'] = 'normal'
+        if w['levelreq']: res['req_level'] = w['levelreq']
+        if w['mindam']: res['damage_min'] = w['mindam']
+        if w['maxdam']: res['damage_max'] = w['maxdam']
+        if w['reqstr']: res['req_str'] = w['reqstr']
+        if w['reqdex']: res['req_dex'] = w['reqdex']
+        if w['gemsockets']: res['sockets'] = w['gemsockets']
+        if w['durability']: res['durability'] = w['durability']
+        return jsonify(res)
+
+    return jsonify(None)
+
 # 我的物品管理路由
 @app.route('/my-items')
 @login_required

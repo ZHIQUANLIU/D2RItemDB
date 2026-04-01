@@ -535,6 +535,37 @@
         }
         
         filterCharacters();
+
+        // Auto-fill defaults when item name is selected
+        document.getElementById('item_id').addEventListener('input', function(e) {
+            const name = this.value;
+            // Check if name exists in our pre-loaded lists to avoid unnecessary API calls
+            const allNames = [...uniqueItems.map(i => i[0]), ...setItems.map(i => i[0]), ...weapons.map(i => i[0]), ...armors.map(i => i[0]), ...miscItems.map(i => i[0])];
+            
+            if (allNames.includes(name)) {
+                fetch(`/api/item-defaults?name=${encodeURIComponent(name)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data) {
+                            // Smart category detection
+                            if (data.item_type) {
+                                const typeSelect = document.getElementById('item_type');
+                                if ((typeSelect.value === 'normal' || typeSelect.value === 'magic') && (data.item_type === 'unique' || data.item_type === 'set')) {
+                                    typeSelect.value = data.item_type;
+                                    updateItems();
+                                }
+                            }
+                            
+                            // Fill fields
+                            Object.keys(data).forEach(key => {
+                                if (key !== 'item_type' && data[key] !== null) {
+                                    setFormValue(key, data[key]);
+                                }
+                            });
+                        }
+                    });
+            }
+        });
     </script>
 
 {% endblock %}

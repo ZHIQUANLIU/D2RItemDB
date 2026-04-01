@@ -281,9 +281,15 @@ h1 {
 
 .input-field:focus {
     outline: none;
+    background: rgba(255, 255, 255, 0.1);
     border-color: var(--text-primary);
-    box-shadow: 0 0 0 2px rgba(240, 192, 64, 0.15);
-    background: rgba(15, 15, 30, 0.9);
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.2);
+}
+
+.input-field.filled {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 8px rgba(243, 156, 18, 0.15);
+    transition: all 0.3s ease;
 }
 
 /* Select & Dropdowns */
