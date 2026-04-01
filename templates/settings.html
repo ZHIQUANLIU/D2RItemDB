@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+        <div class="header">
+            <h1>{% if lang == 'zh' %}设置{% else %}Settings{% endif %}</h1>
+            <div style="display:flex;gap:10px;align-items:center;">
+                {% if session.user_id %}
+                    <span style="color: var(--text-secondary);">{{ '已登录' if lang == 'zh' else 'Logged in' }}</span>
+                    <a href="/logout" class="btn">{{ '登出' if lang=='zh' else 'Logout' }}</a>
+                {% else %}
+                    <a href="/login?lang={{ lang }}" class="btn">{{ '登录' if lang=='zh' else 'Login' }}</a>
+                    <a href="/register?lang={{ lang }}" class="btn">{{ '注册' if lang=='zh' else 'Register' }}</a>
+                {% endif %}
+                <div class="theme-switcher">
+                    <button class="theme-toggle-btn" id="themeToggle">
+                        <span id="currentThemeName">{{ '深色' if lang=='zh' else 'Dark' }}</span>
+                    </button>
+                    <div class="theme-menu" id="themeMenu">
+                        <div class="theme-option active" data-theme="dark">
+                            <div class="theme-icon"></div>
+                            {{ '深色' if lang=='zh' else 'Dark' }}
+                        </div>
+                        <div class="theme-option" data-theme="light">
+                            <div class="theme-icon"></div>
+                            {{ '亮色' if lang=='zh' else 'Light' }}
+                        </div>
+                    </div>
+                </div>
+                <div class="tabs" style="margin-bottom:0;">
+                    <button class="tab {% if lang=='zh' %}active{% endif %}" onclick="setLang('zh')">中文</button>
+                    <button class="tab {% if lang=='en' %}active{% endif %}" onclick="setLang('en')">English</button>
+                </div>
+            </div>
+        </div>
+        <form method="post">
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}OCR 方法{% else %}OCR Method{% endif %}</label>
+                <select name="ocr_method" class="input-field">
+                    <option value="gemini" {% if s.get("ocr_method") == "gemini" %}selected{% endif %}>{% if lang == 'zh' %}Google Gemini (AI - 更准确){% else %}Google Gemini (AI - More Accurate){% endif %}</option>
+                    <option value="easyocr" {% if s.get("ocr_method") == "easyocr" %}selected{% endif %}>{% if lang == 'zh' %}EasyOCR (本地 - 更快){% else %}EasyOCR (Local - Faster){% endif %}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}Gemini API 密钥{% else %}Gemini API Key{% endif %}</label>
+                <input type="text" class="input-field" name="gemini_api_key" value="{{ s.get('gemini_api_key', '') }}" placeholder="{% if lang == 'zh' %}输入您的 Gemini API 密钥{% else %}Enter your Gemini API key{% endif %}">
+                <div style="margin-top:8px;color:#666;font-size:12px;">{% if lang == 'zh' %}从以下地址获取 API 密钥：{% else %}Get API key from:{% endif %} https://aistudio.google.com/app/apikey</div>
+            </div>
+            <button type="submit" class="btn primary">{{ '保存' if lang=='zh' else 'Save' }}</button>
+            <a href="/?lang={{ lang }}" class="btn">{{ '返回' if lang=='zh' else 'Back' }}</a>
+            <a href="/accounts?lang={{ lang }}" class="btn" style="margin-left:10px;">{% if lang == 'zh' %}账户管理{% else %}Account Management{% endif %}</a>
+        </form>
+    </div>
+
+{% endblock %}

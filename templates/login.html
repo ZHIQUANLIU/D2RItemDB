@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('zh') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if lang == 'zh' %}登录{% else %}Login{% endif %} - D2R 物品数据库</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="login-form">
+            <h2>{% if lang == 'zh' %}用户登录{% else %}User Login{% endif %}</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label for="username">{% if lang == 'zh' %}用户名{% else %}Username{% endif %}</label>
+                    <input type="text" id="username" name="username" required maxlength="50">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">{% if lang == 'zh' %}密码{% else %}Password{% endif %}</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">{% if lang == 'zh' %}登录{% else %}Login{% endif %}</button>
+            </form>
+
+            <p style="text-align: center; margin-top: 20px;">
+                {% if lang == 'zh' %}还没有账户？{% else %}Don't have an account?{% endif %}
+                <a href="{{ url_for('register') }}">{% if lang == 'zh' %}注册{% else %}Register{% endif %}</a>
+            </p>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <div class="theme-switcher" style="display: inline-block; margin-right: 20px;">
+                    <button class="theme-toggle-btn" id="themeToggle">
+                        <span id="currentThemeName">{{ '深色' if lang=='zh' else 'Dark' }}</span>
+                    </button>
+                    <div class="theme-menu" id="themeMenu">
+                        <div class="theme-option active" data-theme="dark">
+                            <div class="theme-icon"></div>
+                            {{ '深色' if lang=='zh' else 'Dark' }}
+                        </div>
+                        <div class="theme-option" data-theme="light">
+                            <div class="theme-icon"></div>
+                            {{ '亮色' if lang=='zh' else 'Light' }}
+                        </div>
+                    </div>
+                </div>
+                <button onclick="setLang('zh')" class="lang-btn">中文</button>
+                <button onclick="setLang('en')" class="lang-btn">English</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .login-form {
+        max-width: 400px;
+        margin: 50px auto;
+        padding: 30px;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .login-form h2 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--text-primary);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .btn {
+        width: 100%;
+        padding: 12px;
+        background: #375aeb;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .btn:hover {
+        background: #2f4fd9;
+    }
+
+    .theme-toggle-btn {
+        background: #ffffff;
+        border: 1px solid #ced4da;
+        color: #2c3e50;
+    }
+
+    .theme-toggle-btn:hover {
+        background: #f8f9fa;
+    }
+
+    /* ensure both dark/light theme base colors visible */
+    .form-group input {
+        border: 1px solid #ced4da;
+        background: #ffffff;
+        color: #2c3e50;
+    }
+
+    .form-group input:focus {
+        border-color: #375aeb;
+        box-shadow: 0 0 0 2px rgba(55, 90, 235, 0.2);
+    }
+
+    .lang-btn {
+        padding: 5px 10px;
+        margin: 0 5px;
+        background: #ffffff;
+        border: 1px solid #ced4da;
+        color: #2c3e50;
+        cursor: pointer;
+        border-radius: 3px;
+    }
+
+    .lang-btn:hover {
+        background: #f1f3f5;
+    }
+    }
+
+    .alert {
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .alert-danger {
+        background: #fee;
+        border: 1px solid #fcc;
+        color: #c33;
+    }
+
+    .alert-success {
+        background: #efe;
+        border: 1px solid #cfc;
+        color: #363;
+    }
+
+    .lang-btn {
+        padding: 5px 10px;
+        margin: 0 5px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        cursor: pointer;
+        border-radius: 3px;
+    }
+
+    .lang-btn:hover {
+        background: var(--bg-hover);
+    }
+    </style>
+
+    <script>
+    function setLang(lang) {
+        var url = new URL(window.location);
+        url.searchParams.set('lang', lang);
+        window.location.href = url.toString();
+    }
+
+    // Theme switching functionality
+    function initThemeSwitcher() {
+        const themeToggle = document.getElementById('themeToggle');
+        const themeMenu = document.getElementById('themeMenu');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        const currentThemeName = document.getElementById('currentThemeName');
+
+        if (!themeToggle || !themeMenu) return;
+
+        // Get saved theme or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(savedTheme);
+
+        // Update current theme display
+        updateThemeDisplay(savedTheme);
+
+        // Toggle menu visibility
+        themeToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            themeMenu.classList.toggle('show');
+            themeToggle.classList.toggle('open');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!themeToggle.contains(e.target)) {
+                themeMenu.classList.remove('show');
+                themeToggle.classList.remove('open');
+            }
+        });
+
+        // Handle theme selection
+        themeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const theme = this.getAttribute('data-theme');
+                applyTheme(theme);
+                localStorage.setItem('theme', theme);
+                updateThemeDisplay(theme);
+                themeMenu.classList.remove('show');
+                themeToggle.classList.remove('open');
+            });
+        });
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        // Update active state
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.classList.remove('active');
+            if (opt.getAttribute('data-theme') === theme) {
+                opt.classList.add('active');
+            }
+        });
+    }
+
+    function updateThemeDisplay(theme) {
+        const lang = new URLSearchParams(window.location.search).get('lang') || 'zh';
+        const themeNames = {
+            'zh': { dark: '深色', light: '浅色', blue: '蓝色', purple: '紫色', green: '绿色' },
+            'en': { dark: 'Dark', light: 'Light', blue: 'Blue', purple: 'Purple', green: 'Green' }
+        };
+        if (currentThemeName) {
+            currentThemeName.textContent = themeNames[lang][theme] || theme;
+        }
+    }
+
+    // Initialize theme switcher when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initThemeSwitcher);
+    </script>
+</body>
+</html>
