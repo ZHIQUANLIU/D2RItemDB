@@ -18,8 +18,9 @@ Since you are using **Docker Desktop on Windows**, it's important to understand 
    > [!NOTE]
    > Even though you see `gunicorn` and `apt-get` in the `Dockerfile`, these are execution instructions for the **inside** of the container. Docker Desktop handles the translation perfectly on your Windows machine.
 
-3. **Access the App**:
-   Visit `http://localhost:5000`.
+3. **Access the Portals**:
+   - **Main Web UI**: `http://localhost:5000`
+   - **Admin Management**: `http://localhost:5001`
 
 ---
 
@@ -29,8 +30,9 @@ Docker Desktop provides a powerful dashboard for Windows users:
 
 ### 1. Containers Tab
 - Look for the `d2r-item-db` stack.
-- **Logs**: Click the container to see the server output. If you see "Gunicorn is running", your app is live!
-- **Inspect**: Check the **Mounts** section. You should see your local `c:\OpenCode\D2RItemDB` folders mapped to `/app` inside the container.
+- Expand it: you will see two containers: `d2r-item-db` (on :5000) and `d2r-admin` (on :5001).
+- **Logs**: Click either container to see its specific output.
+- **Inspect**: Check the **Mounts** section. You should see your local `c:\OpenCode\D2RItemDB` folders mapped correctly.
 
 ### 2. Images Tab
 - You'll see an image named `d2r-item-db-app`. This is your "Packaged" application. It contains all dependencies (EasyOCR, Flask, Gemini SDK) in a pre-configured state.
@@ -47,7 +49,8 @@ Your files are shared between Windows and the Container:
 | Feature | Windows Path (Your Host) | Container Path (The App) |
 | :--- | :--- | :--- |
 | **Database** | `.\d2r_items.db` | `/app/d2r_items.db` |
-| **Uploads** | `.\static\uploads\` | `/app/static/uploads/` |
+| **Uploads (User)** | `.\static\uploads\` | `/app/static/uploads/` |
+| **Uploads (Admin)** | `.\static\items\` | `/app/static/items/` |
 | **Logs** | Viewed in Docker Desktop | `/dev/stdout` |
 
 ## ✅ Final Verification

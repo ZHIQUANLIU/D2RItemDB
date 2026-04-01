@@ -169,17 +169,15 @@ def init_db():
         )
     """)
 
-    # Create characters table (if not exists)
+    # Create item_images table for the admin utility
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS characters (
+        CREATE TABLE IF NOT EXISTS item_images (
             id INTEGER PRIMARY KEY,
-            account_id INTEGER,
-            name TEXT NOT NULL,
-            class TEXT,
-            user_id INTEGER,
+            code TEXT NOT NULL,
+            image_url TEXT NOT NULL,
+            image_type TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (account_id) REFERENCES accounts (id),
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            UNIQUE(code, image_type)
         )
     """)
 
@@ -191,6 +189,7 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_characters_user ON characters(user_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_image_cache_hash ON image_cache(file_hash)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_item_images_code ON item_images(code)")
 
     db.commit()
 

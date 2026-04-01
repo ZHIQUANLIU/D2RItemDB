@@ -8,11 +8,30 @@ services:
     volumes:
       - ./d2r_items.db:/app/d2r_items.db
       - ./static/uploads:/app/static/uploads
+      - ./static/items:/app/static/items
       - ./settings.json:/app/settings.json
     env_file:
       - .env
     restart: unless-stopped
     # Use environment to force production mode
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+
+  admin:
+    build: .
+    container_name: d2r-admin
+    command: python admin.py
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./d2r_items.db:/app/d2r_items.db
+      - ./static/uploads:/app/static/uploads
+      - ./static/items:/app/static/items
+      - ./settings.json:/app/settings.json
+    env_file:
+      - .env
+    restart: unless-stopped
     environment:
       - ENVIRONMENT=production
       - PYTHONUNBUFFERED=1

@@ -20,12 +20,15 @@ Run the following command to build and start the containers:
 ```bash
 docker-compose up -d --build
 ```
-The app will be available at `http://your-server-ip:5000`.
+Your deployment now consists of two primary portals:
+- **Main Application**: `http://localhost:5000`
+- **Admin Utility**: `http://localhost:5001`
 
 ### 3. Data Persistence
 The `docker-compose.yml` ensures that:
 - `d2r_items.db`: The database is stored on your host machine.
-- `static/uploads`: Your screenshots are saved outside the container.
+- `static/uploads`: User-uploaded item screenshots are persistent.
+- `static/items`: Item images uploaded via the Admin panel are persistent.
 - `settings.json`: Your app settings are preserved.
 
 ---

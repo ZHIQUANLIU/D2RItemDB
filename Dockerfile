@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Create directory for persistent data if not exists
-RUN mkdir -p static/uploads
+# Create directories for persistent data if they don't exist
+RUN mkdir -p static/uploads static/items
 
 # Expose the application port
 EXPOSE 5000
