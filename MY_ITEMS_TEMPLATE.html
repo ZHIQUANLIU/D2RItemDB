@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>我的物品 | My Items</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a14; color: #ccc; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 15px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { color: #f0c040; font-size: 1.6em; }
+        .btn { padding: 8px 16px; background: #4a4a5a; color: #fff; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-primary { background: #f0c040; color: #000; }
+        .btn-danger { background: #d44; }
+        .btn:hover { opacity: 0.8; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        select, input { padding: 8px; background: #1a1a2a; color: #ccc; border: 1px solid #333; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; background: #12121a; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #1a1a2a; color: #f0c040; }
+        tr:hover { background: #1a1a2a; }
+        .eth { color: #a0a; }
+        .perfect { color: #0f0; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.8em; }
+        .badge-stash { background: #338; }
+        .badge-char { background: #383; }
+        .badge-shared { background: #833; }
+        .empty { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{% if lang == 'zh' %}我的物品{% else %}My Items{% endif %}</h1>
+            <div>
+                <a href="/my-items/add?lang={{ lang }}" class="btn btn-primary">{% if lang == 'zh' %}添加物品{% else %}Add Item{% endif %}</a>
+                <a href="/?lang={{ lang }}" class="btn">{% if lang == 'zh' %}返回{% else %}Back{% endif %}</a>
+            </div>
+        </div>
+        
+        <div class="filter-bar">
+            <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="hidden" name="lang" value="{{ lang }}">
+                <select name="account">
+                    <option value="">{% if lang == 'zh' %}所有账户{% else %}All Accounts{% endif %}</option>
+                    {% for acc in accounts %}
+                    <option value="{{ acc }}" {% if acc == selected_account %}selected{% endif %}>{{ acc }}</option>
+                    {% endfor %}
+                </select>
+                <select name="storage_type">
+                    <option value="">{% if lang == 'zh' %}所有位置{% else %}All Locations{% endif %}</option>
+                    <option value="stash" {% if selected_storage == 'stash' %}selected{% endif %}>{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</option>
+                    <option value="character" {% if selected_storage == 'character' %}selected{% endif %}>{% if lang == 'zh' %}角色背包{% else %}Character{% endif %}</option>
+                    <option value="shared" {% if selected_storage == 'shared' %}selected{% else %}selected{% endif %}>{% if lang == 'zh' %}共享箱{% else %}Shared Stash{% endif %}</option>
+                </select>
+                <button type="submit" class="btn">{% if lang == 'zh' %}筛选{% else %}Filter{% endif %}</button>
+            </form>
+        </div>
+        
+        {% if items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>{% if lang == 'zh' %}物品{% else %}Item{% endif %}</th>
+                    <th>{% if lang == 'zh' %}账户{% else %}Account{% endif %}</th>
+                    <th>{% if lang == 'zh' %}角色/位置{% else %}Character/Location{% endif %}</th>
+                    <th>{% if lang == 'zh' %}属性{% else %}Stats{% endif %}</th>
+                    <th>{% if lang == 'zh' %}备注{% else %}Notes{% endif %}</th>
+                    <th>{% if lang == 'zh' %}操作{% else %}Actions{% endif %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>
+                        {% if item.item_type == 'unique' %}
+                        <span style="color:#ffd700">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'set' %}
+                        <span style="color:#00ff00">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'magic' %}
+                        <span style="color:#8080ff">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'rare' %}
+                        <span style="color:#ffff00">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'runeword' %}
+                        <span style="color:#00ffff">{{ item.item_id }}</span>
+                        {% else %}
+                        {{ item.item_id }}
+                        {% endif %}
+                        {% if item.is_ethereal %}<span class="eth">{% if lang == 'zh' %}无形{% else %}(ETH){% endif %}</span>{% endif %}
+                        {% if item.is_artifact %}<span style="color:#ff00ff">{% if lang == 'zh' %}神器{% else %}(ART){% endif %}</span>{% endif %}
+                        {% if item.sockets and item.sockets > 0 %}<span style="color:#ffa500">({{ item.sockets }}孔)</span>{% endif %}
+                    </td>
+                    <td>{{ item.account }}</td>
+                    <td>
+                        {% if item.storage_type == 'stash' %}
+                        <span class="badge badge-stash">{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</span>
+                        {% elif item.storage_type == 'character' %}
+                        <span class="badge badge-char">{{ item.character_name }}</span>
+                        {% elif item.storage_type == 'shared' %}
+                        <span class="badge badge-shared">{% if lang == 'zh' %}共享箱{% else %}Shared{% endif %}</span>
+                        {% endif %}
+                        {% if item.storage_name %}({{ item.storage_name }}){% endif %}
+                    </td>
+                    <td style="font-size:0.75em;">
+                        {% if item.req_level %}[{{ item.req_level }}]{% endif %}
+                        {% if item.defense %} Def: {{ item.defense }}{% endif %}
+                        {% if item.enhanced_defense %} ED: {{ item.enhanced_defense }}%{% endif %}
+                        {% if item.damage_min %}{{ item.damage_min }}-{{ item.damage_max or item.damage_min }}{% endif %}
+                        {% if item.sockets %}[{{ item.sockets }}]{% endif %}
+                        {% if item.str_bonus %}+{{ item.str_bonus }} Str{% endif %}
+                        {% if item.dex_bonus %}+{{ item.dex_bonus }} Dex{% endif %}
+                        {% if item.vit_bonus %}+{{ item.vit_bonus }} Vit{% endif %}
+                        {% if item.ene_bonus %}+{{ item.ene_bonus }} Ene{% endif %}
+                        {% if item.life %}+{{ item.life }} Life{% endif %}
+                        {% if item.mana %}+{{ item.mana }} Mana{% endif %}
+                        {% if item.skill_name %}+{{ item.skill_level or 1 }} {{ item.skill_name }}{% endif %}
+                        {% if item.ias %}+{{ item.ias }}% IAS{% endif %}
+                        {% if item.fcr %}+{{ item.fcr }}% FCR{% endif %}
+                        {% if item.fhr %}+{{ item.fhr }}% FHR{% endif %}
+                        {% if item.frw %}+{{ item.frw }}% FRW{% endif %}
+                        {% if item.res_all %}+{{ item.res_all }}% All Res{% endif %}
+                        {% if item.res_fire %}+{{ item.res_fire }}% Fire Res{% endif %}
+                        {% if item.res_cold %}+{{ item.res_cold }}% Cold Res{% endif %}
+                        {% if item.res_ltng %}+{{ item.res_ltng }}% Ltng Res{% endif %}
+                        {% if item.mf %}+{{ item.mf }}% MF{% endif %}
+                        {% if item.life_steal %}{{ item.life_steal }}% Life Steal{% endif %}
+                        {% if item.cannot_be_frozen %}[CBF]{% endif %}
+                    </td>
+                    <td>{{ item.notes or '' }}</td>
+                    <td>
+                        <a href="/my-items/edit/{{ item.id }}?lang={{ lang }}" class="btn">{% if lang == 'zh' %}编辑{% else %}Edit{% endif %}</a>
+                        <a href="/my-items/delete/{{ item.id }}?lang={{ lang }}" class="btn btn-danger" onclick="return confirm('{% if lang == 'zh' %}确定删除?{% else %}Confirm delete?{% endif %}')">{% if lang == 'zh' %}删除{% else %}Delete{% endif %}</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">
+            {% if lang == 'zh' %}暂无物品记录，点击"添加物品"开始记录{% else %}No items yet. Click "Add Item" to start tracking{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

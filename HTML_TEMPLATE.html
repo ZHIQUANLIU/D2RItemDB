@@ -1,0 +1,377 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>D2R 物品查询 | Item Database</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a14; color: #ccc; min-height: 100vh; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 15px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        h1 { color: #f0c040; font-size: 1.6em; letter-spacing: 2px; }
+        .lang-switch { display: flex; gap: 5px; }
+        .lang-btn { padding: 6px 12px; background: #1a1a30; border: 1px solid #353550; border-radius: 4px; color: #666; cursor: pointer; font-size: 12px; }
+        .lang-btn.active { background: #f0c040; color: #000; border-color: #f0c040; }
+        
+        .toolbar { background: linear-gradient(135deg, #151525 0%, #1a1a30 100%); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #252540; }
+        .toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .toolbar-row:last-child { margin-bottom: 0; }
+        
+        .search-box { display: flex; flex: 1; gap: 8px; }
+        .search-box input { flex: 1; padding: 10px 14px; font-size: 14px; border: 1px solid #353550; border-radius: 6px; background: #0a0a14; color: #ccc; }
+        .search-box input:focus { outline: none; border-color: #f0c040; }
+        .search-box button { padding: 10px 20px; font-size: 14px; background: linear-gradient(135deg, #e94560 0%, #c73e54 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-label { font-size: 12px; color: #666; }
+        .filter-select { padding: 8px 12px; font-size: 13px; border: 1px solid #353550; border-radius: 6px; background: #0a0a14; color: #ccc; min-width: 100px; }
+        
+        .tabs { display: flex; gap: 6px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab { padding: 8px 16px; background: #151525; border: 1px solid #252540; border-radius: 6px; color: #777; cursor: pointer; font-size: 13px; }
+        .tab.active { background: #f0c040; color: #000; font-weight: 600; border-color: #f0c040; }
+        .tab:hover:not(.active) { background: #252540; color: #aaa; }
+        
+        .results { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+        
+        .item-card { background: linear-gradient(145deg, #151525 0%, #10101c 100%); padding: 14px; border-radius: 8px; border-left: 3px solid #e94560; transition: all 0.2s; }
+        .item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        .item-card.armor { border-left-color: #4a90d9; }
+        .item-card.unique { border-left-color: #ffd700; }
+        .item-card.set { border-left-color: #32cd32; }
+        .item-card.misc { border-left-color: #9370db; }
+        .item-card.gem { border-left-color: #ff69b4; }
+        .item-card.rune { border-left-color: #00ced1; }
+        
+        .item-header { display: flex; align-items: flex-start; margin-bottom: 4px; }
+        .item-icon { width: 28px; height: 28px; object-fit: contain; background: #1a1a2e; border-radius: 4px; margin-right: 8px; flex-shrink: 0; }
+        .item-info { flex: 1; min-width: 0; }
+        .item-name { font-size: 1.1em; color: #f0c040; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-name-en { font-size: 0.75em; color: #666; margin-top: 2px; }
+        .item-code { font-size: 0.7em; color: #555; background: #0a0a14; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .item-type { color: #666; font-size: 0.8em; margin-bottom: 8px; }
+        
+        .item-stats { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+        .stat { display: inline-block; background: #1e1e30; padding: 3px 8px; border-radius: 4px; font-size: 0.75em; border: 1px solid #2a2a45; }
+        .stat-label { color: #666; }
+        .stat-value { color: #f0c040; font-weight: 600; }
+        .damage { color: #e94560; }
+        .defense { color: #4a90d9; }
+        
+        .item-props { color: #888; font-size: 0.8em; padding-top: 8px; border-top: 1px solid #252540; margin-top: 8px; }
+        .prop { display: inline-block; background: #1a1a30; padding: 2px 6px; border-radius: 3px; margin: 2px; border: 1px solid #2a2a45; color: #a080c0; font-size: 0.75em; }
+        .set-name { color: #32cd32; font-weight: 600; margin-top: 6px; font-size: 0.85em; }
+        
+        .raw-btn { padding: 5px 10px; font-size: 11px; background: #1e1e30; color: #666; border: 1px solid #2a2a45; border-radius: 4px; cursor: pointer; margin-top: 8px; }
+        .raw-btn:hover { background: #2a2a45; color: #888; }
+        
+        .empty { text-align: center; color: #444; padding: 50px; font-size: 1.1em; }
+        .count { color: #666; font-size: 0.85em; margin-bottom: 10px; }
+        
+        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; flex-wrap: wrap; }
+        .pagination a { padding: 8px 12px; background: #1a1a30; color: #888; text-decoration: none; border-radius: 4px; font-size: 13px; border: 1px solid #2a2a45; }
+        .pagination a:hover { background: #2a2a45; color: #aaa; }
+        .pagination a.active { background: #f0c040; color: #000; border-color: #f0c040; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: #151525; border-radius: 10px; max-width: 90%; max-height: 85%; width: 700px; border: 1px solid #353550; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #252540; }
+        .modal-title { font-size: 1.1em; color: #f0c040; }
+        .modal-close { background: none; border: none; color: #666; font-size: 20px; cursor: pointer; }
+        .modal-close:hover { color: #e94560; }
+        .modal-body { padding: 16px; max-height: 65vh; overflow: auto; }
+        .modal-body pre { background: #0a0a14; padding: 12px; border-radius: 6px; font-size: 11px; color: #888; overflow-x: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.6; }
+        .modal-body .json-key { color: #6a9fd4; }
+        .modal-body .json-string { color: #7ec699; }
+        .modal-body .json-number { color: #e8a85c; }
+        .modal-body .json-section { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #2a2a45; }
+        .modal-body .json-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .modal-body .section-title { color: #f0c040; font-size: 12px; margin-bottom: 8px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚔️ D2R 物品查询 | Item Database</h1>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <a href="/settings?lang={{ lang }}" style="color:#888;text-decoration:none;padding:5px 10px;background:#1a1a30;border-radius:4px;font-size:13px;">{% if lang == 'zh' %}设置{% else %}Settings{% endif %}</a>
+                <a href="/my-items?lang={{ lang }}" style="color:#f0c040;text-decoration:none;padding:5px 10px;background:#1a1a30;border-radius:4px;font-size:13px;">{% if lang == 'zh' %}我的物品{% else %}My Items{% endif %}</a>
+                <div class="lang-switch">
+                    <button class="lang-btn {% if lang=='zh' %}active{% endif %}" onclick="setLang('zh')">中文</button>
+                    <button class="lang-btn {% if lang=='en' %}active{% endif %}" onclick="setLang('en')">English</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="toolbar">
+            <div class="toolbar-row">
+                <form method="get" class="search-box">
+                    <input type="text" name="q" placeholder="{{ '搜索物品名称...' if lang=='zh' else 'Search items...' }}" value="{{ request.args.get('q', '') }}">
+                    <input type="hidden" name="lang" value="{{ lang }}">
+                    <button type="submit">{{ '搜索' if lang=='zh' else 'Search' }}</button>
+                </form>
+            </div>
+            <div class="toolbar-row">
+                <div class="filter-group">
+                    <span class="filter-label">{{ '分类' if lang=='zh' else 'Category' }}:</span>
+                    <select class="filter-select" onchange="location.href=this.value">
+                        <option value="?{{ build_query('category', 'all') }}" {% if not request.args.get('category') or request.args.get('category')=='all' %}selected{% endif %}>{{ '全部' if lang=='zh' else 'All' }}</option>
+                        <option value="?{{ build_query('category', 'weapons') }}" {% if request.args.get('category')=='weapons' %}selected{% endif %}>{{ '武器' if lang=='zh' else 'Weapons' }}</option>
+                        <option value="?{{ build_query('category', 'armor') }}" {% if request.args.get('category')=='armor' %}selected{% endif %}>{{ '护甲' if lang=='zh' else 'Armor' }}</option>
+                        <option value="?{{ build_query('category', 'unique') }}" {% if request.args.get('category')=='unique' %}selected{% endif %}>{{ '暗金' if lang=='zh' else 'Unique' }}</option>
+                        <option value="?{{ build_query('category', 'set') }}" {% if request.args.get('category')=='set' %}selected{% endif %}>{{ '套装' if lang=='zh' else 'Set' }}</option>
+                        <option value="?{{ build_query('category', 'misc') }}" {% if request.args.get('category')=='misc' %}selected{% endif %}>{{ '杂物' if lang=='zh' else 'Misc' }}</option>
+                        <option value="?{{ build_query('category', 'gems') }}" {% if request.args.get('category')=='gems' %}selected{% endif %}>{{ '宝石' if lang=='zh' else 'Gems' }}</option>
+                        <option value="?{{ build_query('category', 'runes') }}" {% if request.args.get('category')=='runes' %}selected{% endif %}>{{ '符文' if lang=='zh' else 'Runes' }}</option>
+                    </select>
+                </div>
+                
+                {% if request.args.get('category') == 'weapons' %}
+                <div class="filter-group">
+                    <span class="filter-label">{{ '武器类型' if lang=='zh' else 'Weapon Type' }}:</span>
+                    <select class="filter-select" onchange="location.href=this.value">
+                        <option value="?{{ build_query('wtype', 'all') }}" {% if not request.args.get('wtype') or request.args.get('wtype')=='all' %}selected{% endif %}>{{ '全部' if lang=='zh' else 'All' }}</option>
+                        <option value="?{{ build_query('wtype', 'axe') }}" {% if request.args.get('wtype')=='axe' %}selected{% endif %}>{{ '斧子' if lang=='zh' else 'Axe' }}</option>
+                        <option value="?{{ build_query('wtype', 'sword') }}" {% if request.args.get('wtype')=='sword' %}selected{% endif %}>{{ '剑' if lang=='zh' else 'Sword' }}</option>
+                        <option value="?{{ build_query('wtype', 'bow') }}" {% if request.args.get('wtype')=='bow' %}selected{% endif %}>{{ '弓' if lang=='zh' else 'Bow' }}</option>
+                        <option value="?{{ build_query('wtype', 'crossbow') }}" {% if request.args.get('wtype')=='crossbow' %}selected{% endif %}>{{ '弩' if lang=='zh' else 'Crossbow' }}</option>
+                        <option value="?{{ build_query('wtype', 'mace') }}" {% if request.args.get('wtype')=='mace' %}selected{% endif %}>{{ '锤' if lang=='zh' else 'Mace' }}</option>
+                        <option value="?{{ build_query('wtype', 'staff') }}" {% if request.args.get('wtype')=='staff' %}selected{% endif %}>{{ '法杖' if lang=='zh' else 'Staff' }}</option>
+                        <option value="?{{ build_query('wtype', 'wand') }}" {% if request.args.get('wtype')=='wand' %}selected{% endif %}>{{ '魔杖' if lang=='zh' else 'Wand' }}</option>
+                        <option value="?{{ build_query('wtype', 'scepter') }}" {% if request.args.get('wtype')=='scepter' %}selected{% endif %}>{{ '权杖' if lang=='zh' else 'Scepter' }}</option>
+                        <option value="?{{ build_query('wtype', 'spear') }}" {% if request.args.get('wtype')=='spear' %}selected{% endif %}>{{ '矛' if lang=='zh' else 'Spear' }}</option>
+                        <option value="?{{ build_query('wtype', 'polearm') }}" {% if request.args.get('wtype')=='polearm' %}selected{% endif %}>{{ '长柄' if lang=='zh' else 'Polearm' }}</option>
+                        <option value="?{{ build_query('wtype', 'dagger') }}" {% if request.args.get('wtype')=='dagger' %}selected{% endif %}>{{ '匕首' if lang=='zh' else 'Dagger' }}</option>
+                        <option value="?{{ build_query('wtype', 'javelin') }}" {% if request.args.get('wtype')=='javelin' %}selected{% endif %}>{{ '标枪' if lang=='zh' else 'Javelin' }}</option>
+                    </select>
+                </div>
+                {% endif %}
+                
+                {% if request.args.get('category') == 'armor' %}
+                <div class="filter-group">
+                    <span class="filter-label">{{ '护甲类型' if lang=='zh' else 'Armor Type' }}:</span>
+                    <select class="filter-select" onchange="location.href=this.value">
+                        <option value="?{{ build_query('atype', 'all') }}" {% if not request.args.get('atype') or request.args.get('atype')=='all' %}selected{% endif %}>{{ '全部' if lang=='zh' else 'All' }}</option>
+                        <option value="?{{ build_query('atype', 'tors') }}" {% if request.args.get('atype')=='tors' %}selected{% endif %}>{{ '衣服' if lang=='zh' else 'Armor' }}</option>
+                        <option value="?{{ build_query('atype', 'helm') }}" {% if request.args.get('atype')=='helm' %}selected{% endif %}>{{ '头盔' if lang=='zh' else 'Helm' }}</option>
+                        <option value="?{{ build_query('atype', 'shie') }}" {% if request.args.get('atype')=='shie' %}selected{% endif %}>{{ '盾牌' if lang=='zh' else 'Shield' }}</option>
+                        <option value="?{{ build_query('atype', 'belt') }}" {% if request.args.get('atype')=='belt' %}selected{% endif %}>{{ '腰带' if lang=='zh' else 'Belt' }}</option>
+                        <option value="?{{ build_query('atype', 'glov') }}" {% if request.args.get('atype')=='glov' %}selected{% endif %}>{{ '手套' if lang=='zh' else 'Gloves' }}</option>
+                        <option value="?{{ build_query('atype', 'boot') }}" {% if request.args.get('atype')=='boot' %}selected{% endif %}>{{ '靴子' if lang=='zh' else 'Boots' }}</option>
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="filter-group">
+                    <span class="filter-label">{{ '每页' if lang=='zh' else 'Per page' }}:</span>
+                    <select class="filter-select" onchange="location.href=this.value">
+                        <option value="?{{ build_query('per_page', 25) }}" {% if per_page==25 %}selected{% endif %}>25</option>
+                        <option value="?{{ build_query('per_page', 50) }}" {% if per_page==50 %}selected{% endif %}>50</option>
+                        <option value="?{{ build_query('per_page', 100) }}" {% if per_page==100 %}selected{% endif %}>100</option>
+                        <option value="?{{ build_query('per_page', 200) }}" {% if per_page==200 %}selected{% endif %}>200</option>
+                    </select>
+                </div>
+                
+                <div class="sort-group">
+                    <span class="filter-label">{{ '排序' if lang=='zh' else 'Sort' }}:</span>
+                    <select class="filter-select" onchange="location.href=this.value">
+                        <option value="?{{ build_query('sort', 'level') }}" {% if not request.args.get('sort') or request.args.get('sort')=='level' %}selected{% endif %}>{{ '等级↑' if lang=='zh' else 'Level ↑' }}</option>
+                        <option value="?{{ build_query('sort', 'level_desc') }}" {% if request.args.get('sort')=='level_desc' %}selected{% endif %}>{{ '等级↓' if lang=='zh' else 'Level ↓' }}</option>
+                        <option value="?{{ build_query('sort', 'damage') }}" {% if request.args.get('sort')=='damage' %}selected{% endif %}>{{ '伤害↑' if lang=='zh' else 'Damage ↑' }}</option>
+                        <option value="?{{ build_query('sort', 'damage_desc') }}" {% if request.args.get('sort')=='damage_desc' %}selected{% endif %}>{{ '伤害↓' if lang=='zh' else 'Damage ↓' }}</option>
+                        <option value="?{{ build_query('sort', 'defense') }}" {% if request.args.get('sort')=='defense' %}selected{% endif %}>{{ '防御↑' if lang=='zh' else 'Defense ↑' }}</option>
+                        <option value="?{{ build_query('sort', 'defense_desc') }}" {% if request.args.get('sort')=='defense_desc' %}selected{% endif %}>{{ '防御↓' if lang=='zh' else 'Defense ↓' }}</option>
+                        <option value="?{{ build_query('sort', 'cost') }}" {% if request.args.get('sort')=='cost' %}selected{% endif %}>{{ '价格↑' if lang=='zh' else 'Price ↑' }}</option>
+                        <option value="?{{ build_query('sort', 'cost_desc') }}" {% if request.args.get('sort')=='cost_desc' %}selected{% endif %}>{{ '价格↓' if lang=='zh' else 'Price ↓' }}</option>
+                        <option value="?{{ build_query('sort', 'name') }}" {% if request.args.get('sort')=='name' %}selected{% endif %}>{{ '名称' if lang=='zh' else 'Name' }}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <a href="?{{ build_query('category', 'all') }}" class="tab {% if not request.args.get('category') or request.args.get('category')=='all' %}active{% endif %}">{{ '全部' if lang=='zh' else 'All' }}</a>
+            <a href="?{{ build_query('category', 'weapons') }}" class="tab {% if request.args.get('category')=='weapons' %}active{% endif %}">{{ '武器' if lang=='zh' else 'Weapons' }}</a>
+            <a href="?{{ build_query('category', 'armor') }}" class="tab {% if request.args.get('category')=='armor' %}active{% endif %}">{{ '护甲' if lang=='zh' else 'Armor' }}</a>
+            <a href="?{{ build_query('category', 'unique') }}" class="tab {% if request.args.get('category')=='unique' %}active{% endif %}">{{ '暗金' if lang=='zh' else 'Unique' }}</a>
+            <a href="?{{ build_query('category', 'set') }}" class="tab {% if request.args.get('category')=='set' %}active{% endif %}">{{ '套装' if lang=='zh' else 'Set' }}</a>
+            <a href="?{{ build_query('category', 'misc') }}" class="tab {% if request.args.get('category')=='misc' %}active{% endif %}">{{ '杂物' if lang=='zh' else 'Misc' }}</a>
+            <a href="?{{ build_query('category', 'gems') }}" class="tab {% if request.args.get('category')=='gems' %}active{% endif %}">{{ '宝石' if lang=='zh' else 'Gems' }}</a>
+            <a href="?{{ build_query('category', 'runes') }}" class="tab {% if request.args.get('category')=='runes' %}active{% endif %}">{{ '符文' if lang=='zh' else 'Runes' }}</a>
+        </div>
+        
+        <div class="count">
+            {{ ('共 %d 件物品，第 %d/%d 页' if lang=='zh' else 'Total %d items, Page %d/%d')|format(total_count, page, total_pages) }}
+        </div>
+        
+        <div class="results">
+            {% if items %}
+                {% for item in items %}
+                <div class="item-card {{ item.category }}">
+                    <div class="item-header">
+                        {% if item.image_url %}
+                        <img src="{{ item.image_url }}" class="item-icon" onerror="this.style.display='none'">
+                        {% endif %}
+                        <div class="item-info">
+                            <div class="item-name">
+                                {% if item.unique_name is defined and item.unique_name %}{{ item.unique_name }}
+                                {% elif item.set_item_name is defined and item.set_item_name %}{{ item.set_item_name }}
+                                {% else %}{{ item.name }}{% endif %}
+                            </div>
+                            {% if item.base_name is defined and item.base_name and item.name is defined and item.base_name != item.name and ((item.unique_name is defined and item.unique_name) or (item.set_item_name is defined and item.set_item_name)) %}
+                            <div class="item-name-en">{{ item.base_name }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="item-code">{{ item.code }}</div>
+                    </div>
+                    <div class="item-type">{{ translate_type(item.type, lang) }}</div>
+                    
+                    {% if item.mindam is defined or item.minac is defined %}
+                    <div class="item-stats">
+                        {% if item.mindam is defined and item.maxdam is defined %}
+                            {% if item.mindam or item.maxdam %}
+                            <span class="stat damage">{{ '伤害' if lang=='zh' else 'Damage' }}: <span class="stat-value">{{ item.mindam }}-{{ item.maxdam }}</span></span>
+                            {% endif %}
+                        {% endif %}
+                        {% if item.minac is defined and item.maxac is defined %}
+                            {% if item.minac or item.maxac %}
+                            <span class="stat defense">{{ '防御' if lang=='zh' else 'Defense' }}: <span class="stat-value">{{ item.minac }}-{{ item.maxac }}</span></span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="item-stats">
+                        {% if item.level %} <span class="stat"><span class="stat-label">{{ '等级' if lang=='zh' else 'Level' }}</span> <span class="stat-value">{{ item.level }}</span></span>{% endif %}
+                        {% if item.levelreq %} <span class="stat"><span class="stat-label">{{ '需求' if lang=='zh' else 'Req' }}</span> <span class="stat-value">{{ item.levelreq }}</span></span>{% endif %}
+                        {% if item.speed is defined and item.speed != 0 %} <span class="stat"><span class="stat-label">{{ '速度' if lang=='zh' else 'Speed' }}</span> <span class="stat-value">{{ item.speed }}</span></span>{% endif %}
+                        {% if item.reqstr %} <span class="stat"><span class="stat-label">{{ '力量' if lang=='zh' else 'Str' }}</span> <span class="stat-value">{{ item.reqstr }}</span></span>{% endif %}
+                        {% if item.reqdex %} <span class="stat"><span class="stat-label">{{ '敏捷' if lang=='zh' else 'Dex' }}</span> <span class="stat-value">{{ item.reqdex }}</span></span>{% endif %}
+                        {% if item.durability and item.durability > 0 %} <span class="stat"><span class="stat-label">{{ '耐久' if lang=='zh' else 'Dur' }}</span> <span class="stat-value">{{ item.durability }}</span></span>{% endif %}
+                        {% if item.sockets %} <span class="stat"><span class="stat-label">{{ '孔' if lang=='zh' else 'Sockets' }}</span> <span class="stat-value">{{ item.sockets }}</span></span>{% endif %}
+                        {% if item.cost %} <span class="stat"><span class="stat-label">{{ '价格' if lang=='zh' else 'Price' }}</span> <span class="stat-value">{{ item.cost }}</span></span>{% endif %}
+                    </div>
+                    
+                    {% if item.props %}
+                    <div class="item-props">
+                        {% for prop in item.props.split(',') %}
+                        <span class="prop">{{ translate_prop(prop.strip(), lang) }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if item.full_set_name %}
+                    <div class="set-name">{{ '套装' if lang=='zh' else 'Set' }}: {{ item.full_set_name }}</div>
+                    {% endif %}
+                    
+                    {% if item.rune1 %}
+                    <div class="item-stats">
+                        <span class="stat"><span class="stat-label">{{ '符文' if lang=='zh' else 'Rune' }}</span> <span class="stat-value">{{ item.rune1 }} {{ item.rune2 }} {{ item.rune3 }}</span></span>
+                    </div>
+                    {% endif %}
+                    
+                    <button class="raw-btn" onclick="showModal('{{ (item.unique_name or item.set_item_name or item.name)|replace("'", "\\'") }}', '{{ item.raw_data|replace('\n',' ')|replace('"','&quot;')|safe }}')">{{ '原始数据' if lang=='zh' else 'Raw Data' }}</button>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">{{ '未找到物品' if lang=='zh' else 'No items found' }}</div>
+            {% endif %}
+        </div>
+        
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="?{{ build_query('page', 1) }}">{{ '<<' if lang=='zh' else '<<' }}</a>
+            <a href="?{{ build_query('page', page-1) }}">{{ '<' if lang=='zh' else '<' }}</a>
+            {% endif %}
+            
+            {% for p in range([1, page-2]|max, [total_pages, page+3]|min+1) %}
+            <a href="?{{ build_query('page', p) }}" {% if p==page %}class="active"{% endif %}>{{ p }}</a>
+            {% endfor %}
+            
+            {% if page < total_pages %}
+            <a href="?{{ build_query('page', page+1) }}">{{ '>' if lang=='zh' else '>' }}</a>
+            <a href="?{{ build_query('page', total_pages) }}">{{ '>>' if lang=='zh' else '>>' }}</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="modal" id="dataModal" onclick="if(event.target===this)closeModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle"></div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="modalBody"></pre>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function setLang(lang) {
+        var url = new URL(window.location);
+        url.searchParams.set('lang', lang);
+        window.location.href = url.toString();
+    }
+    var currentLang = new URLSearchParams(window.location.search).get('lang') || 'zh';
+    
+    function formatJson(data) {
+        try {
+            const obj = JSON.parse(data.replace(/&quot;/g, '"'));
+            const keys = Object.keys(obj);
+            
+            const important = ['name', 'code', 'type', 'level', 'lvl', 'levelreq', 'mindam', 'maxdam', 'minac', 'maxac', 'speed', 'cost', 'durability', 'sockets', 'reqstr', 'reqdex'];
+            const importantKeys = keys.filter(k => important.includes(k.toLowerCase()));
+            const otherKeys = keys.filter(k => !important.includes(k.toLowerCase()));
+            
+            let html = '';
+            let title1 = currentLang === 'zh' ? '基础属性' : 'Basic Properties';
+            let title2 = currentLang === 'zh' ? '其他属性' : 'Other Fields';
+            let moreText = currentLang === 'zh' ? '...还有 ' : '... and ';
+            let fieldsText = currentLang === 'zh' ? ' 个字段' : ' more fields';
+            
+            if (importantKeys.length > 0) {
+                html += '<div class="json-section"><div class="section-title">' + title1 + '</div>';
+                importantKeys.forEach(k => {
+                    html += '<span class="json-key">' + k + '</span>: <span class="json-number">' + obj[k] + '</span> ';
+                });
+                html += '</div>';
+            }
+            
+            if (otherKeys.length > 0) {
+                html += '<div class="json-section"><div class="section-title">' + title2 + '</div>';
+                otherKeys.slice(0, 30).forEach(k => {
+                    let val = obj[k];
+                    if (String(val).length > 30) val = String(val).substring(0, 30) + '...';
+                    html += '<span class="json-key">' + k + '</span>: <span class="json-string">' + val + '</span> ';
+                });
+                if (otherKeys.length > 30) {
+                    html += '<br><span style="color:#666">' + moreText + (otherKeys.length - 30) + fieldsText + '</span>';
+                }
+                html += '</div>';
+            }
+            
+            return html;
+        } catch(e) {
+            return '<pre>' + data + '</pre>';
+        }
+    }
+    
+    function showModal(title, data) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = formatJson(data);
+        document.getElementById('dataModal').classList.add('show');
+    }
+    function closeModal() {
+        document.getElementById('dataModal').classList.remove('show');
+    }
+    document.addEventListener('keydown', function(e) {
+        if(e.key === 'Escape') closeModal();
+    });
+    </script>
+</body>
+</html>
