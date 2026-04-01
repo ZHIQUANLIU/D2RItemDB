@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('en') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D2R 物品查询 | Item Database</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+
+        {% block content %}{% endblock %}
+
+    </div>
+
+    <script>
+    function setLang(lang) {
+        var url = new URL(window.location);
+        url.searchParams.set('lang', lang);
+        window.location.href = url.toString();
+    }
+    // Global formatJson modal
+    function formatJson(data) {
+        var lang = new URLSearchParams(window.location.search).get('lang') || 'zh';
+        try {
+            const obj = JSON.parse(data.replace(/&quot;/g, '"'));
+            const keys = Object.keys(obj);
+            const important = ['name', 'code', 'type', 'level', 'lvl', 'levelreq', 'mindam', 'maxdam', 'minac', 'maxac', 'speed', 'cost', 'durability', 'sockets', 'reqstr', 'reqdex'];
+            const importantKeys = keys.filter(k => important.includes(k.toLowerCase()));
+            const otherKeys = keys.filter(k => !important.includes(k.toLowerCase()));
+            
+            let html = '';
+            let title1 = lang === 'zh' ? '基础属性' : 'Basic Properties';
+            let title2 = lang === 'zh' ? '其他属性' : 'Other Fields';
+            let moreText = lang === 'zh' ? '...还有 ' : '... and ';
+            let fieldsText = lang === 'zh' ? ' 个字段' : ' more fields';
+            
+            if (importantKeys.length > 0) {
+                html += '<div style="margin-bottom:12px"><b style="color:var(--text-primary)">' + title1 + '</b><br>';
+                importantKeys.forEach(k => {
+                    html += '<span style="color:#6a9fd4">' + k + '</span>: <span style="color:#e8a85c">' + obj[k] + '</span> ';
+                });
+                html += '</div>';
+            }
+            if (otherKeys.length > 0) {
+                html += '<div><b style="color:var(--text-primary)">' + title2 + '</b><br>';
+                otherKeys.slice(0, 30).forEach(k => {
+                    let val = obj[k];
+                    if (String(val).length > 30) val = String(val).substring(0, 30) + '...';
+                    html += '<span style="color:#6a9fd4">' + k + '</span>: <span style="color:#7ec699">' + val + '</span> ';
+                });
+                if (otherKeys.length > 30) {
+                    html += '<br><span style="color:var(--text-muted)">' + moreText + (otherKeys.length - 30) + fieldsText + '</span>';
+                }
+                html += '</div>';
+            }
+            return html;
+        } catch(e) {
+            return '<pre>' + data + '</pre>';
+        }
+    }
+    
+    function showModal(title, data) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = formatJson(data);
+        document.getElementById('dataModal').classList.add('show');
+    }
+    function closeModal() {
+        document.getElementById('dataModal').classList.remove('show');
+    }
+    document.addEventListener('keydown', function(e) {
+        if(e.key === 'Escape') {
+            const modal = document.getElementById('dataModal');
+            if(modal) modal.classList.remove('show');
+        }
+    });
+
+    // Theme switching functionality
+    function initThemeSwitcher() {
+        const themeToggle = document.getElementById('themeToggle');
+        const themeMenu = document.getElementById('themeMenu');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        const currentThemeName = document.getElementById('currentThemeName');
+
+        // Always apply saved theme at page load
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(savedTheme);
+        updateThemeDisplay(savedTheme);
+
+        // If no UI switcher (e.g. add item page), stop here
+        if (!themeToggle || !themeMenu) return;
+
+        // Toggle menu visibility
+        themeToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            themeMenu.classList.toggle('show');
+            themeToggle.classList.toggle('open');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!themeToggle.contains(e.target)) {
+                themeMenu.classList.remove('show');
+                themeToggle.classList.remove('open');
+            }
+        });
+
+        // Handle theme selection
+        themeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const theme = this.getAttribute('data-theme');
+                applyTheme(theme);
+                localStorage.setItem('theme', theme);
+                updateThemeDisplay(theme);
+                themeMenu.classList.remove('show');
+                themeToggle.classList.remove('open');
+            });
+        });
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        // Update active state
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.classList.remove('active');
+            if (opt.getAttribute('data-theme') === theme) {
+                opt.classList.add('active');
+            }
+        });
+    }
+
+    function updateThemeDisplay(theme) {
+        const lang = new URLSearchParams(window.location.search).get('lang') || 'zh';
+        const themeNames = {
+            'zh': { dark: '深色', light: '浅色', blue: '蓝色', purple: '紫色', green: '绿色' },
+            'en': { dark: 'Dark', light: 'Light', blue: 'Blue', purple: 'Purple', green: 'Green' }
+        };
+        if (currentThemeName) {
+            currentThemeName.textContent = themeNames[lang][theme] || theme;
+        }
+    }
+
+    // Initialize theme switcher when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initThemeSwitcher);
+    </script>
+</body>
+</html>

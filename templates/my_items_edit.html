@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+        <h1>{% if lang == 'zh' %}编辑物品{% else %}Edit Item{% endif %}</h1>
+        <form method="post">
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}物品类型{% else %}Item Type{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <select name="item_type" id="item_type" onchange="updateItems()">
+                            <option value="normal" {% if item.item_type == 'normal' %}selected{% endif %}>{% if lang == 'zh' %}普通(基础){% else %}Normal (Base){% endif %}</option>
+                            <option value="magic" {% if item.item_type == 'magic' %}selected{% endif %}>{% if lang == 'zh' %}魔法{% else %}Magic{% endif %}</option>
+                            <option value="rare" {% if item.item_type == 'rare' %}selected{% endif %}>{% if lang == 'zh' %}稀有{% else %}Rare{% endif %}</option>
+                            <option value="unique" {% if item.item_type == 'unique' %}selected{% endif %}>{% if lang == 'zh' %}暗金{% else %}Unique{% endif %}</option>
+                            <option value="set" {% if item.item_type == 'set' %}selected{% endif %}>{% if lang == 'zh' %}套装{% else %}Set{% endif %}</option>
+                            <option value="runeword" {% if item.item_type == 'runeword' %}selected{% endif %}>{% if lang == 'zh' %}符文之语{% else %}Runeword{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <input type="text" class="input-field" name="item_id" id="item_id" value="{{ item.item_id or '' }}" list="item_list" placeholder="{% if lang == 'zh' %}输入搜索物品名称...{% else %}Search item name...{% endif %}">
+                        <datalist id="item_list"></datalist>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}战网账户{% else %}Battle.net Account{% endif %}</label>
+                <input type="text" class="input-field" name="account" id="account_input" value="{{ item.account }}" list="account_list" placeholder="{% if lang == 'zh' %}输入或选择账户{% else %}Type or select account{% endif %}" oninput="filterCharacters()" onchange="filterCharacters()" required>
+                <datalist id="account_list">
+                    {% for acc in accounts %}
+                    <option value="{{ acc[1] }}">{{ acc[1] }}</option>
+                    {% endfor %}
+                </datalist>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}存储位置{% else %}Storage Location{% endif %}</label>
+                <div class="row">
+                    <div class="col">
+                        <select name="storage_type" id="storage_type" onchange="toggleCharacter()" required>
+                            <option value="stash" {% if item.storage_type == 'stash' %}selected{% endif %}>{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</option>
+                            <option value="character" {% if item.storage_type == 'character' %}selected{% endif %}>{% if lang == 'zh' %}角色背包{% else %}Character{% endif %}</option>
+                            <option value="shared" {% if item.storage_type == 'shared' %}selected{% endif %}>{% if lang == 'zh' %}共享箱{% else %}Shared Stash{% endif %}</option>
+                        </select>
+                    </div>
+                    <div class="col" id="char_col">
+                        <input type="text" class="input-field" name="character_name" id="character_input" value="{{ item.character_name or '' }}" list="character_list" placeholder="{% if lang == 'zh' %}输入或选择角色{% else %}Type or select character{% endif %}">
+                        <datalist id="character_list"></datalist>
+                    </div>
+                    <div class="col">
+                        <input type="text" class="input-field" name="storage_name" value="{{ item.storage_name or '' }}" placeholder="{% if lang == 'zh' %}箱子名{% else %}Stash Name{% endif %}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}物品属性{% else %}Item Stats{% endif %}</label>
+                <div class="row">
+                    <div class="col"><input type="number" class="input-field" name="quality" value="{{ item.quality or '' }}" placeholder="{% if lang == 'zh' %}品质{% else %}Quality{% endif %}"></div>
+                    <div class="col"><input type="number" class="input-field" name="defense" value="{{ item.defense or '' }}" placeholder="{% if lang == 'zh' %}防御{% else %}Defense{% endif %}"></div>
+                    <div class="col"><input type="number" class="input-field" name="enhanced_damage" value="{{ item.enhanced_damage or '' }}" placeholder="ED%"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><input type="number" class="input-field" name="skills" value="{{ item.skills or '' }}" placeholder="{% if lang == 'zh' %}技能{% else %}Skills{% endif %}"></div>
+                    <div class="col"><input type="number" class="input-field" name="all_resists" value="{{ item.all_resists or '' }}" placeholder="{% if lang == 'zh' %}全抗{% else %}Resists{% endif %}"></div>
+                    <div class="col"><input type="number" class="input-field" name="mf" value="{{ item.mf or '' }}" placeholder="MF%"></div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                    <div class="col"><input type="number" class="input-field" name="sockets" value="{{ item.sockets or '' }}" placeholder="{% if lang == 'zh' %}孔数{% else %}Sockets{% endif %}"></div>
+                </div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <input type="checkbox" name="is_ethereal" id="is_ethereal" {% if item.is_ethereal %}checked{% endif %} style="width:auto;">
+                <label for="is_ethereal" style="display:inline;margin:0;">{% if lang == 'zh' %}无形{% else %}Ethereal{% endif %}</label>
+                <span style="width:20px"></span>
+                <input type="checkbox" name="is_artifact" id="is_artifact" {% if item.is_artifact %}checked{% endif %} style="width:auto;">
+                <label for="is_artifact" style="display:inline;margin:0;">{% if lang == 'zh' %}神器{% else %}Artifact{% endif %}</label>
+            </div>
+            
+            <div class="form-group">
+                <label>{% if lang == 'zh' %}备注{% else %}Notes{% endif %}</label>
+                <textarea name="notes" rows="3">{{ item.notes or '' }}</textarea>
+            </div>
+            
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn primary" class="btn btn-primary">{% if lang == 'zh' %}保存{% else %}Save{% endif %}</button>
+                <a href="/my-items?lang={{ lang }}" class="btn">{% if lang == 'zh' %}取消{% else %}Cancel{% endif %}</a>
+            </div>
+        </form>
+    </div>
+    <script>
+        const uniqueItems = {{ unique_items|tojson }};
+        const setItems = {{ set_items|tojson }};
+        const weapons = {{ weapons|tojson }};
+        const armors = {{ armors|tojson }};
+        const miscItems = {{ misc_items|tojson }};
+        
+        function updateItems() {
+            const type = document.getElementById('item_type').value;
+            const datalist = document.getElementById('item_list');
+            datalist.innerHTML = '';
+            
+            let items = [];
+            if (type === 'unique') items = uniqueItems;
+            else if (type === 'set') items = setItems;
+            else if (type === 'normal') items = [...weapons, ...armors, ...miscItems];
+            else if (type === 'magic') items = [...weapons, ...armors, ...miscItems];
+            else if (type === 'rare') items = [...weapons, ...armors, ...miscItems];
+            else if (type === 'runeword') items = [...weapons, ...armors, ...miscItems];
+            
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item[0];
+                opt.textContent = item[0] + (item[1] ? ' (' + item[1] + ')' : '');
+                datalist.appendChild(opt);
+            });
+        }
+        
+        updateItems();
+        
+        const accountsData = {{ accounts|tojson }};
+        const charactersData = {{ characters|tojson }};
+        
+        function filterCharacters() {
+            const accountInput = document.getElementById('account_input');
+            const characterList = document.getElementById('character_list');
+            const selectedAccount = accountInput.value.trim();
+            
+            characterList.innerHTML = '';
+            
+            if (!selectedAccount) {
+                charactersData.forEach(char => {
+                    const opt = document.createElement('option');
+                    opt.value = char[2];
+                    opt.textContent = char[2] + (char[3] ? ' (' + char[3] + ')' : '');
+                    characterList.appendChild(opt);
+                });
+                return;
+            }
+            
+            const matchedAccount = accountsData.find(acc => acc[1] === selectedAccount);
+            if (!matchedAccount) {
+                return;
+            }
+            
+            const accountId = matchedAccount[0];
+            const filteredChars = charactersData.filter(char => char[1] === accountId);
+            
+            filteredChars.forEach(char => {
+                const opt = document.createElement('option');
+                opt.value = char[2];
+                opt.textContent = char[2] + (char[3] ? ' (' + char[3] + ')' : '');
+                characterList.appendChild(opt);
+            });
+        }
+        
+        function toggleCharacter() {
+            const storageType = document.getElementById('storage_type').value;
+            const charCol = document.getElementById('char_col');
+            const charInput = document.getElementById('character_input');
+            
+            if (storageType === 'character') {
+                charCol.style.display = 'block';
+                charInput.required = true;
+            } else {
+                charCol.style.display = 'block';
+                charInput.required = false;
+            }
+        }
+        
+        filterCharacters();
+    </script>
+
+{% endblock %}

@@ -1,0 +1,8 @@
+Flask==2.3.0
+easyocr==1.7.0
+werkzeug==2.3.0
+google-generativeai==0.4.0
+python-magic==0.4.27
+flask-limiter==3.5.0
+python-dotenv==1.0.0
+bleach==6.1.0
