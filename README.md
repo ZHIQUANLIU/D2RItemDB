@@ -29,7 +29,7 @@ Choose from 2 high-contrast themes optimized for readability:
 
 ## 📊 Data Source
 
-All item data is meticulously sourced from [ZHIQUANLIU/D2R-Excel](https://github.com/ZHIQUANLIU/D2R-Excel), a comprehensive Diablo 2 Resurrected data repository.
+Item data is sourced from [pinkufairy/D2R-Excel](https://github.com/pinkufairy/D2R-Excel), a comprehensive Diablo 2 Resurrected data repository.
 
 ## 🛠️ Tech Stack
 
