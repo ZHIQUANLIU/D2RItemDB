@@ -158,6 +158,18 @@ def create_tables(conn):
         )
     """)
     
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS item_images (
+            id INTEGER PRIMARY KEY,
+            code TEXT NOT NULL,
+            image_url TEXT NOT NULL,
+            image_type TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(code, image_type)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_item_images_code ON item_images(code)")
+
     conn.commit()
 
 def safe_int(val, default=0):
