@@ -944,9 +944,6 @@ select.filter-select:hover, select.filter-select:focus {
     color: #2c3e50;
     border-color: #ced4da;
 }
-    font-weight: 700;
-    text-transform: uppercase;
-}
 
 .form-group input, .form-group select, .form-group textarea {
     width: 100%;
@@ -1125,4 +1122,117 @@ select.filter-select:hover, select.filter-select:focus {
         padding: 8px 12px;
         font-size: 14px;
     }
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeleton-loading {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.skeleton-card {
+    height: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 3D Tilt and Premium Hover Effects */
+.item-card {
+    perspective: 1000px;
+    transform-style: preserve-3d;
+}
+
+.item-card:hover {
+    transform: translateY(-8px) rotateX(2deg) rotateY(1deg);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.7), 0 0 15px rgba(240, 192, 64, 0.1);
+}
+
+/* Rarity-specific Glows */
+.item-card.unique:hover { box-shadow: 0 15px 35px rgba(199, 179, 119, 0.25), 0 0 20px rgba(199, 179, 119, 0.15); }
+.item-card.set:hover { box-shadow: 0 15px 35px rgba(39, 174, 96, 0.25), 0 0 20px rgba(39, 174, 96, 0.15); }
+.item-card.armor:hover, .item-card.weapons:hover { box-shadow: 0 15px 35px rgba(52, 152, 219, 0.2), 0 0 20px rgba(52, 152, 219, 0.1); }
+.item-card.rune:hover { box-shadow: 0 15px 35px rgba(231, 76, 60, 0.2), 0 0 20px rgba(231, 76, 60, 0.1); }
+
+/* Centered Premium Tooltip Headers */
+.item-card .item-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    margin-bottom: 12px;
+}
+
+.item-card .item-icon-wrap {
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+    width: 64px !important;
+    height: 64px !important;
+    border-color: var(--border-light) !important;
+}
+
+.item-card .item-name {
+    font-size: 1.25em !important;
+    margin-bottom: 4px;
+}
+
+/* Refined Stats Grid */
+.item-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+}
+
+.stat {
+    margin-right: 0 !important;
+    justify-content: space-between !important;
+    padding: 6px 10px;
+}
+
+/* Item Props - Diablo Font Feel */
+.item-props {
+    text-align: center !important;
+    font-style: italic;
+    border-top: 1px solid var(--border-dim);
+    padding-top: 12px;
+}
+
+.prop {
+    display: block;
+    margin-bottom: 2px;
+}
+
+/* Loading Overlay */
+#loading-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+    display: none;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--text-primary);
+    border-radius: 50%;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
