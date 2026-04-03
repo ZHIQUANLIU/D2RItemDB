@@ -70,7 +70,7 @@
 [data-theme="light"] select.filter-select {
     background-color: #ffffff;
     border: 1px solid #ced4da;
-    color: #2c3e50;
+    color: #bed3e9;
 }
 
 /* Blue Theme - Ocean Tech */
@@ -156,7 +156,7 @@ body {
     background: var(--bg-main);
     color: var(--text-main);
     min-height: 100vh;
-    background-image: 
+    background-image:
         radial-gradient(circle at 15% 50%, rgba(233, 69, 96, 0.05) 0%, transparent 50%),
         radial-gradient(circle at 85% 30%, rgba(240, 192, 64, 0.05) 0%, transparent 50%);
     background-attachment: fixed;
@@ -308,7 +308,8 @@ select.filter-select {
     transition: all 0.2s;
 }
 
-select.filter-select:hover, select.filter-select:focus {
+select.filter-select:hover,
+select.filter-select:focus {
     border-color: var(--border-light);
     outline: none;
     background-color: rgba(25, 25, 45, 0.9);
@@ -459,29 +460,61 @@ select.filter-select:hover, select.filter-select:focus {
 .item-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; height: 100%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 40%);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 40%);
     pointer-events: none;
 }
 
 .item-card:hover {
     transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 12px 24px rgba(0,0,0,0.6);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
     border-color: rgba(90, 90, 130, 0.8);
     z-index: 2;
 }
 
 /* Category Colors */
-.item-card.unique { border-left-color: var(--border-unique); }
-.item-card.set { border-left-color: var(--border-set); }
-.item-card.armor { border-left-color: #4a90d9; }
-.item-card.weapons { border-left-color: #e94560; }
-.item-card.misc { border-left-color: #9370db; }
-.item-card.gem, .item-card.gems { border-left-color: #ff69b4; }
-.item-card.rune, .item-card.runes { border-left-color: var(--color-rune); }
+.item-card.unique {
+    border-left-color: var(--border-unique);
+}
 
-.item-card:hover.unique { box-shadow: 0 8px 24px rgba(199, 179, 119, 0.15); border-color: rgba(199, 179, 119, 0.4); }
-.item-card:hover.set { box-shadow: 0 8px 24px rgba(0, 255, 0, 0.1); border-color: rgba(0, 255, 0, 0.3); }
+.item-card.set {
+    border-left-color: var(--border-set);
+}
+
+.item-card.armor {
+    border-left-color: #4a90d9;
+}
+
+.item-card.weapons {
+    border-left-color: #e94560;
+}
+
+.item-card.misc {
+    border-left-color: #9370db;
+}
+
+.item-card.gem,
+.item-card.gems {
+    border-left-color: #ff69b4;
+}
+
+.item-card.rune,
+.item-card.runes {
+    border-left-color: var(--color-rune);
+}
+
+.item-card:hover.unique {
+    box-shadow: 0 8px 24px rgba(199, 179, 119, 0.15);
+    border-color: rgba(199, 179, 119, 0.4);
+}
+
+.item-card:hover.set {
+    box-shadow: 0 8px 24px rgba(0, 255, 0, 0.1);
+    border-color: rgba(0, 255, 0, 0.3);
+}
 
 /* Item Card Components */
 .item-header {
@@ -493,7 +526,7 @@ select.filter-select:hover, select.filter-select:focus {
 .item-icon-wrap {
     width: 44px;
     height: 44px;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border-dim);
     border-radius: var(--radius-sm);
     margin-right: 12px;
@@ -508,7 +541,7 @@ select.filter-select:hover, select.filter-select:focus {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .item-info {
@@ -528,9 +561,18 @@ select.filter-select:hover, select.filter-select:focus {
     margin-bottom: 2px;
 }
 
-.item-card.set .item-name { color: var(--color-set); }
-.item-card.armor .item-name, .item-card.weapons .item-name { color: var(--color-magic); }
-.item-card.rune .item-name { color: var(--color-rune); }
+.item-card.set .item-name {
+    color: var(--color-set);
+}
+
+.item-card.armor .item-name,
+.item-card.weapons .item-name {
+    color: var(--color-magic);
+}
+
+.item-card.rune .item-name {
+    color: var(--color-rune);
+}
 
 .item-name-en {
     font-size: 0.75em;
@@ -540,7 +582,7 @@ select.filter-select:hover, select.filter-select:focus {
 .item-code {
     font-size: 0.7em;
     color: #667;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'Courier New', Courier, monospace;
@@ -582,8 +624,13 @@ select.filter-select:hover, select.filter-select:focus {
     font-weight: 600;
 }
 
-.stat.damage .stat-value { color: var(--text-accent); }
-.stat.defense .stat-value { color: #4a90d9; }
+.stat.damage .stat-value {
+    color: var(--text-accent);
+}
+
+.stat.defense .stat-value {
+    color: #4a90d9;
+}
 
 /* Props List */
 .item-props {
@@ -633,7 +680,9 @@ select.filter-select:hover, select.filter-select:focus {
     border-top-color: #ced4da;
 }
 
-.prop.magic { color: #4a90e2; }
+.prop.magic {
+    color: #4a90e2;
+}
 
 /* Set Name */
 .set-name {
@@ -659,7 +708,7 @@ select.filter-select:hover, select.filter-select:focus {
 }
 
 .raw-btn:hover {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-main);
     border-color: var(--border-light);
 }
@@ -720,7 +769,10 @@ select.filter-select:hover, select.filter-select:focus {
 .modal {
     display: none;
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(5, 5, 10, 0.85);
     backdrop-filter: blur(10px);
     z-index: 1000;
@@ -742,7 +794,7 @@ select.filter-select:hover, select.filter-select:focus {
     max-height: 85%;
     width: 650px;
     border: 1px solid var(--border-light);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
     transform: scale(0.95) translateY(20px);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
@@ -759,7 +811,7 @@ select.filter-select:hover, select.filter-select:focus {
     align-items: center;
     padding: 16px 20px;
     border-bottom: 1px solid var(--border-dim);
-    background: rgba(255,255,255,0.02);
+    background: rgba(255, 255, 255, 0.02);
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
 }
@@ -814,8 +866,15 @@ select.filter-select:hover, select.filter-select:focus {
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Scrollbar styling for a premium feel */
@@ -823,15 +882,18 @@ select.filter-select:hover, select.filter-select:focus {
     width: 8px;
     height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: rgba(10, 10, 20, 0.5); 
+    background: rgba(10, 10, 20, 0.5);
 }
+
 ::-webkit-scrollbar-thumb {
-    background: rgba(80, 80, 120, 0.5); 
+    background: rgba(80, 80, 120, 0.5);
     border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 100, 150, 0.8); 
+    background: rgba(100, 100, 150, 0.8);
 }
 
 /* Form Layout specific to Accounts and Add Item */
@@ -865,9 +927,17 @@ select.filter-select:hover, select.filter-select:focus {
     color: var(--text-muted);
 }
 
-.ocr-loading { color: var(--text-primary); }
-.ocr-success { color: #2ecc71; }
-.ocr-error { color: #e74c3c; }
+.ocr-loading {
+    color: var(--text-primary);
+}
+
+.ocr-success {
+    color: #2ecc71;
+}
+
+.ocr-error {
+    color: #e74c3c;
+}
 
 .form-group label {
     display: block;
@@ -899,16 +969,27 @@ select.filter-select:hover, select.filter-select:focus {
     min-width: 110px;
 }
 
-.row .col.col-1 { flex: 1 1 calc(15% - 6px); }
-.row .col.col-2 { flex: 1 1 calc(30% - 6px); }
-.row .col.col-3 { flex: 1 1 calc(45% - 6px); }
-.row .col.col-4 { flex: 1 1 calc(60% - 6px); }
+.row .col.col-1 {
+    flex: 1 1 calc(15% - 6px);
+}
+
+.row .col.col-2 {
+    flex: 1 1 calc(30% - 6px);
+}
+
+.row .col.col-3 {
+    flex: 1 1 calc(45% - 6px);
+}
+
+.row .col.col-4 {
+    flex: 1 1 calc(60% - 6px);
+}
 
 .section-title {
     color: #fff;
     background: linear-gradient(90deg, rgba(142, 68, 173, 0.95), rgba(40, 90, 190, 0.95));
     border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 6px 10px;
     margin-bottom: 8px;
     display: inline-block;
@@ -916,7 +997,7 @@ select.filter-select:hover, select.filter-select:focus {
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.7px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="light"] .section-title {
@@ -951,7 +1032,9 @@ select.filter-select:hover, select.filter-select:focus {
     border-color: #ced4da;
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.form-group input,
+.form-group select,
+.form-group textarea {
     width: 100%;
 }
 
@@ -1132,12 +1215,17 @@ select.filter-select:hover, select.filter-select:focus {
 
 /* Skeleton Loading Animation */
 @keyframes skeleton-loading {
-    0% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
     background-size: 400% 100%;
     animation: skeleton-loading 1.4s ease-in-out infinite;
     border-radius: 4px;
@@ -1162,14 +1250,26 @@ select.filter-select:hover, select.filter-select:focus {
 
 .item-card:hover {
     transform: translateY(-8px) rotateX(2deg) rotateY(1deg);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.7), 0 0 15px rgba(240, 192, 64, 0.1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 15px rgba(240, 192, 64, 0.1);
 }
 
 /* Rarity-specific Glows */
-.item-card.unique:hover { box-shadow: 0 15px 35px rgba(199, 179, 119, 0.25), 0 0 20px rgba(199, 179, 119, 0.15); }
-.item-card.set:hover { box-shadow: 0 15px 35px rgba(39, 174, 96, 0.25), 0 0 20px rgba(39, 174, 96, 0.15); }
-.item-card.armor:hover, .item-card.weapons:hover { box-shadow: 0 15px 35px rgba(52, 152, 219, 0.2), 0 0 20px rgba(52, 152, 219, 0.1); }
-.item-card.rune:hover { box-shadow: 0 15px 35px rgba(231, 76, 60, 0.2), 0 0 20px rgba(231, 76, 60, 0.1); }
+.item-card.unique:hover {
+    box-shadow: 0 15px 35px rgba(199, 179, 119, 0.25), 0 0 20px rgba(199, 179, 119, 0.15);
+}
+
+.item-card.set:hover {
+    box-shadow: 0 15px 35px rgba(39, 174, 96, 0.25), 0 0 20px rgba(39, 174, 96, 0.15);
+}
+
+.item-card.armor:hover,
+.item-card.weapons:hover {
+    box-shadow: 0 15px 35px rgba(52, 152, 219, 0.2), 0 0 20px rgba(52, 152, 219, 0.1);
+}
+
+.item-card.rune:hover {
+    box-shadow: 0 15px 35px rgba(231, 76, 60, 0.2), 0 0 20px rgba(231, 76, 60, 0.1);
+}
 
 /* Centered Premium Tooltip Headers */
 .item-card .item-header {
@@ -1221,8 +1321,11 @@ select.filter-select:hover, select.filter-select:focus {
 /* Loading Overlay */
 #loading-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.3);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
     display: none;
     z-index: 9999;
@@ -1233,12 +1336,168 @@ select.filter-select:hover, select.filter-select:focus {
 .spinner {
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(255,255,255,0.1);
+    border: 3px solid rgba(255, 255, 255, 0.1);
     border-top-color: var(--text-primary);
     border-radius: 50%;
     animation: spin 1s ease-in-out infinite;
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Flash Messages */
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    width: 90%;
+    max-width: 500px;
+}
+
+.flash {
+    padding: 12px 20px;
+    margin-bottom: 10px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-glow);
+    font-weight: 500;
+    animation: slideDown 0.3s ease-out;
+    backdrop-filter: blur(8px);
+}
+
+.flash.success {
+    background: rgba(39, 174, 96, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.flash.error {
+    background: rgba(192, 57, 43, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Account Management */
+.account-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-dim);
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.account-header {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-dim);
+}
+
+.account-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.account-body {
+    padding: 20px;
+}
+
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.character-tag {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.character-tag:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-light);
+}
+
+.char-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.char-name {
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.char-class {
+    font-size: 0.75em;
+    color: var(--text-muted);
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-accent);
+    cursor: pointer;
+    font-size: 1.1em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.add-char-form {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+[data-theme="light"] .account-card {
+    background: #fff;
+}
+
+[data-theme="light"] .account-header {
+    background: #f8f9fa;
+}
+
+[data-theme="light"] .character-tag {
+    background: #f1f3f5;
+}
+
+[data-theme="light"] .add-char-form {
+    background: #f8f9fa;
 }

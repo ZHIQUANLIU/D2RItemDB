@@ -169,6 +169,21 @@ def init_db():
         )
     """)
 
+    # Create characters table (if not exists)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS characters (
+            id INTEGER PRIMARY KEY,
+            account_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            class TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (account_id) REFERENCES accounts (id),
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(account_id, name)
+        )
+    """)
+
     # Create item_images table for the admin utility
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS item_images (
@@ -302,9 +317,11 @@ def settings():
 
 # 账户管理
 @app.route('/accounts', methods=['GET', 'POST'])
+@login_required
 def manage_accounts():
     lang = request.args.get('lang', 'zh')
     db = get_db()
+    user_id = session['user_id']
     
     if request.method == 'POST':
         action = request.form.get('action')
@@ -313,32 +330,64 @@ def manage_accounts():
             notes = request.form.get('notes', '')
             if name:
                 try:
-                    db.execute('INSERT INTO accounts (name, notes) VALUES (?, ?)', (name, notes))
+                    db.execute('INSERT INTO accounts (name, notes, user_id) VALUES (?, ?, ?)', (name, notes, user_id))
                     db.commit()
-                except:
-                    pass
+                    flash('账户添加成功' if lang == 'zh' else 'Account added successfully', 'success')
+                except sqlite3.IntegrityError:
+                    flash('该账户名已存在' if lang == 'zh' else 'Account name already exists', 'error')
+                except Exception as e:
+                    flash(f'错误: {str(e)}', 'error')
+        
         elif action == 'add_character':
             account_id = request.form.get('account_id')
             char_name = request.form.get('char_name', '').strip()
             char_class = request.form.get('char_class', '')
+            
             if account_id and char_name:
-                try:
-                    db.execute('INSERT INTO characters (account_id, name, class) VALUES (?, ?, ?)', (account_id, char_name, char_class))
-                    db.commit()
-                except:
-                    pass
+                # Check account ownership and character count
+                acc = query_db('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (account_id, user_id), one=True)
+                if not acc:
+                    flash('非法操作' if lang == 'zh' else 'Unauthorized action', 'error')
+                else:
+                    count = query_db('SELECT COUNT(*) FROM characters WHERE account_id = ?', (account_id,), one=True)[0]
+                    if count >= 50:
+                        flash('每个账户最多50个角色' if lang == 'zh' else 'Max 50 characters per account', 'error')
+                    else:
+                        try:
+                            db.execute('INSERT INTO characters (account_id, user_id, name, class) VALUES (?, ?, ?, ?)', 
+                                     (account_id, user_id, char_name, char_class))
+                            db.commit()
+                            flash('角色添加成功' if lang == 'zh' else 'Character added successfully', 'success')
+                        except sqlite3.IntegrityError:
+                            flash('该账号下已存在同名角色' if lang == 'zh' else 'Character name already exists in this account', 'error')
+                        except Exception as e:
+                            flash(f'错误: {str(e)}', 'error')
+                            
         elif action == 'delete_account':
             account_id = request.form.get('account_id')
-            db.execute('DELETE FROM characters WHERE account_id = ?', (account_id,))
-            db.execute('DELETE FROM accounts WHERE id = ?', (account_id,))
-            db.commit()
+            # Verify ownership
+            acc = query_db('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (account_id, user_id), one=True)
+            if acc:
+                db.execute('DELETE FROM characters WHERE account_id = ? AND user_id = ?', (account_id, user_id))
+                db.execute('DELETE FROM accounts WHERE id = ? AND user_id = ?', (account_id, user_id))
+                db.commit()
+                flash('账户已删除' if lang == 'zh' else 'Account deleted', 'success')
+            else:
+                flash('无法删除他人账户' if lang == 'zh' else 'Cannot delete another user\'s account', 'error')
+                
         elif action == 'delete_character':
             char_id = request.form.get('char_id')
-            db.execute('DELETE FROM characters WHERE id = ?', (char_id,))
-            db.commit()
+            # Verify ownership
+            char = query_db('SELECT id FROM characters WHERE id = ? AND user_id = ?', (char_id, user_id), one=True)
+            if char:
+                db.execute('DELETE FROM characters WHERE id = ? AND user_id = ?', (char_id, user_id))
+                db.commit()
+                flash('角色已删除' if lang == 'zh' else 'Character deleted', 'success')
+            else:
+                flash('无法删除他人角色' if lang == 'zh' else 'Cannot delete another user\'s character', 'error')
     
-    accounts = query_db('SELECT * FROM accounts ORDER BY name')
-    characters = query_db('SELECT c.*, a.name as account_name FROM characters c JOIN accounts a ON c.account_id = a.id ORDER BY a.name, c.name')
+    accounts = query_db('SELECT * FROM accounts WHERE user_id = ? ORDER BY name', (user_id,))
+    characters = query_db('SELECT c.*, a.name as account_name FROM characters c JOIN accounts a ON c.account_id = a.id WHERE c.user_id = ? ORDER BY a.name, c.name', (user_id,))
     
     return render_template('accounts.html', accounts=accounts, characters=characters, lang=lang)
 
