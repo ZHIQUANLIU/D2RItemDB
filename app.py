@@ -1,4 +1,4 @@
-from flask import render_template, Flask, request, g, session, jsonify, send_from_directory, redirect, url_for, flash
+from flask import render_template, Flask, request, g, session, jsonify, send_from_directory, redirect, url_for, flash, make_response
 import sqlite3
 import json
 import os
@@ -821,42 +821,126 @@ def get_item_defaults():
     db = get_db()
     res = {}
 
-    # Try unique items first
-    u = query_db("SELECT * FROM unique_items WHERE name = ?", (name,), one=True)
+    # Comprehensive property mapping from game data -> form fields
+    PROPERTY_MAP = {
+        'ac%': 'enhanced_defense',
+        'dmg%': 'enhanced_damage',
+        'str': 'str_bonus',
+        'dex': 'dex_bonus',
+        'vit': 'vit_bonus',
+        'ene': 'ene_bonus',
+        'hp': 'life',
+        'mana': 'mana',
+        'res-all': 'res_all',
+        'res-fire': 'res_fire',
+        'res-ltng': 'res_ltng',
+        'res-cold': 'res_cold',
+        'res-pois': 'res_pois',
+        'fire-res': 'res_fire',
+        'ltng-res': 'res_ltng',
+        'cold-res': 'res_cold',
+        'pois-res': 'res_pois',
+        'ias': 'ias',
+        'fcr': 'fcr',
+        'fhr': 'fhr',
+        'frw': 'frw',
+        'mf': 'mf',
+        'gold%': 'eg',
+        'lifesteal': 'life_steal',
+        'manasteal': 'mana_steal',
+        'crush': 'crushing_blow',
+        'deadly': 'deadly_strike',
+        'ow': 'openwounds',
+        'openwounds': 'open_wounds',
+        'absorb-fire': 'absorb_fire',
+        'absorb-cold': 'absorb_cold',
+        'absorb-ltng': 'absorb_ltng',
+        'red-mag': 'absorb_fire', # Approximate for some values
+        'cannot': 'cannot_be_frozen',
+        'sock': 'sockets',
+        'att': 'attack_rating_plus',
+        'att%': 'attack_rating',
+        'life-kill': 'life_after_kill',
+        'mana-kill': 'mana_after_kill'
+    }
+
+    def parse_raw_stats(raw_json, target_res):
+        if not raw_json: return
+        try:
+            raw = json.loads(raw_json)
+            # D2 data usually has prop1, min1, max1, ... propN, minN, maxN
+            for i in range(1, 10): # Usually up to 7, but give some space
+                prop = raw.get(f'prop{i}')
+                if not prop: continue
+                
+                min_v = safe_int(raw.get(f'min{i}'), 0)
+                max_v = safe_int(raw.get(f'max{i}'), min_v)
+                # User requirement: Pick maximum value as default
+                val = max(min_v, max_v)
+                
+                if prop in PROPERTY_MAP:
+                    field = PROPERTY_MAP[prop]
+                    if field == 'cannot_be_frozen':
+                        target_res[field] = 1
+                    else:
+                        target_res[field] = val
+                
+                # Special cases: Skills
+                elif prop == 'skill':
+                    target_res['skill_name'] = raw.get(f'par{i}', '')
+                    target_res['skill_level'] = val
+                elif prop == 'allskills':
+                    target_res['skill_name'] = 'All Skills'
+                    target_res['skill_level'] = val
+                
+                # CTC handled separately or skipped for now as it's complex
+        except Exception as e:
+            print(f"Error parsing raw stats: {e}")
+
+    # Try unique items first: index_name is the unique item display name (e.g. "The Stone of Jordan")
+    u = query_db("SELECT * FROM unique_items WHERE index_name = ?", (name,), one=True)
+        
     if u:
         res['item_type'] = 'unique'
         if u['levelreq']: res['req_level'] = u['levelreq']
-        # Try to get base item stats via code
+        parse_raw_stats(u['raw_data'], res)
+        
+        # Merge base item stats via code
         base = query_db("SELECT * FROM armor WHERE code = ?", (u['code'],), one=True)
         if not base:
             base = query_db("SELECT * FROM weapons WHERE code = ?", (u['code'],), one=True)
         
         if base:
-            if 'maxac' in base.keys() and base['maxac']: res['defense'] = base['maxac']
-            if 'mindam' in base.keys() and base['mindam']: res['damage_min'] = base['mindam']
-            if 'maxdam' in base.keys() and base['maxdam']: res['damage_max'] = base['maxdam']
-            if 'reqstr' in base.keys() and base['reqstr']: res['req_str'] = base['reqstr']
-            if 'reqdex' in base.keys() and base['reqdex']: res['req_dex'] = base['reqdex']
-            if 'gemsockets' in base.keys() and base['gemsockets']: res['sockets'] = base['gemsockets']
-            if 'durability' in base.keys() and base['durability']: res['durability'] = base['durability']
+            cols = [c[0] for c in base.description] if hasattr(base, 'description') else list(base.keys())
+            if 'maxac' in cols and base['maxac'] and 'defense' not in res: res['defense'] = base['maxac']
+            if 'mindam' in cols and base['mindam'] and 'damage_min' not in res: res['damage_min'] = base['mindam']
+            if 'maxdam' in cols and base['maxdam'] and 'damage_max' not in res: res['damage_max'] = base['maxdam']
+            if 'reqstr' in cols and base['reqstr'] and 'req_str' not in res: res['req_str'] = base['reqstr']
+            if 'reqdex' in cols and base['reqdex'] and 'req_dex' not in res: res['req_dex'] = base['reqdex']
+            if 'sockets' in cols and base['sockets'] and 'sockets' not in res: res['sockets'] = base['sockets']
+            if 'durability' in cols and base['durability'] and 'durability' not in res: res['durability'] = base['durability']
         return jsonify(res)
 
-    # Try set items
-    s = query_db("SELECT * FROM set_items WHERE name = ?", (name,), one=True)
+    # Try set items: index_name is the piece display name (e.g. "Civerb's Ward")
+    s = query_db("SELECT * FROM set_items WHERE index_name = ?", (name,), one=True)
     if s:
         res['item_type'] = 'set'
         if s['levelreq']: res['req_level'] = s['levelreq']
+        parse_raw_stats(s['raw_data'], res)
+        
         base = query_db("SELECT * FROM armor WHERE code = ?", (s['code'],), one=True)
         if not base:
             base = query_db("SELECT * FROM weapons WHERE code = ?", (s['code'],), one=True)
+            
         if base:
-            if 'maxac' in base.keys() and base['maxac']: res['defense'] = base['maxac']
-            if 'mindam' in base.keys() and base['mindam']: res['damage_min'] = base['mindam']
-            if 'maxdam' in base.keys() and base['maxdam']: res['damage_max'] = base['maxdam']
-            if 'reqstr' in base.keys() and base['reqstr']: res['req_str'] = base['reqstr']
-            if 'reqdex' in base.keys() and base['reqdex']: res['req_dex'] = base['reqdex']
-            if 'gemsockets' in base.keys() and base['gemsockets']: res['sockets'] = base['gemsockets']
-            if 'durability' in base.keys() and base['durability']: res['durability'] = base['durability']
+            cols = list(base.keys())
+            if 'maxac' in cols and base['maxac'] and 'defense' not in res: res['defense'] = base['maxac']
+            if 'mindam' in cols and base['mindam'] and 'damage_min' not in res: res['damage_min'] = base['mindam']
+            if 'maxdam' in cols and base['maxdam'] and 'damage_max' not in res: res['damage_max'] = base['maxdam']
+            if 'reqstr' in cols and base['reqstr'] and 'req_str' not in res: res['req_str'] = base['reqstr']
+            if 'reqdex' in cols and base['reqdex'] and 'req_dex' not in res: res['req_dex'] = base['reqdex']
+            if 'sockets' in cols and base['sockets'] and 'sockets' not in res: res['sockets'] = base['sockets']
+            if 'durability' in cols and base['durability'] and 'durability' not in res: res['durability'] = base['durability']
         return jsonify(res)
 
     # Try base armor
@@ -893,6 +977,10 @@ def my_items():
     lang = request.args.get('lang', 'zh')
     account = safe_str(request.args.get('account', ''))
     storage_type = safe_str(request.args.get('storage_type', ''))
+    search = safe_str(request.args.get('search', ''))
+    item_type_filter = safe_str(request.args.get('item_type', ''))
+    sort_by = request.args.get('sort_by', 'create_time')
+    sort_order = request.args.get('sort_order', 'desc')
 
     user_id = session['user_id']
     where_conditions = ["user_id = ?"]
@@ -904,16 +992,99 @@ def my_items():
     if storage_type:
         where_conditions.append("storage_type = ?")
         params.append(storage_type)
+    if search:
+        where_conditions.append("(item_id LIKE ? OR notes LIKE ? OR character_name LIKE ?)")
+        search_param = f"%{search}%"
+        params.extend([search_param, search_param, search_param])
+    if item_type_filter:
+        where_conditions.append("item_type = ?")
+        params.append(item_type_filter)
+
+    # Validate sort column
+    allowed_sort_cols = ['item_id', 'account', 'create_time', 'update_time', 'sockets', 'defense', 'mf', 'res_all']
+    if sort_by not in allowed_sort_cols:
+        sort_by = 'create_time'
+    if sort_order not in ['asc', 'desc']:
+        sort_order = 'desc'
 
     where_clause = " AND ".join(where_conditions)
-    sql = f"SELECT * FROM my_items WHERE {where_clause} ORDER BY create_time DESC"
+    sql = f"SELECT * FROM my_items WHERE {where_clause} ORDER BY {sort_by} {sort_order.upper()}"
     items = query_db(sql, tuple(params))
 
     accounts_sql = "SELECT DISTINCT account FROM my_items WHERE user_id = ? ORDER BY account"
     accounts = [r[0] for r in query_db(accounts_sql, (user_id,))]
 
     return render_template('my_items.html', items=items, accounts=accounts,
-                                selected_account=account, selected_storage=storage_type, lang=lang)
+                                selected_account=account, selected_storage=storage_type,
+                                search=search, item_type_filter=item_type_filter,
+                                sort_by=sort_by, sort_order=sort_order, lang=lang)
+
+@app.route('/my-items/export')
+@login_required
+def my_items_export():
+    lang = request.args.get('lang', 'zh')
+    export_format = request.args.get('format', 'csv')
+    account = safe_str(request.args.get('account', ''))
+    storage_type = safe_str(request.args.get('storage_type', ''))
+    search = safe_str(request.args.get('search', ''))
+    item_type_filter = safe_str(request.args.get('item_type', ''))
+
+    user_id = session['user_id']
+    where_conditions = ["user_id = ?"]
+    params = [user_id]
+
+    if account:
+        where_conditions.append("account LIKE ?")
+        params.append(f"%{account}%")
+    if storage_type:
+        where_conditions.append("storage_type = ?")
+        params.append(storage_type)
+    if search:
+        where_conditions.append("(item_id LIKE ? OR notes LIKE ? OR character_name LIKE ?)")
+        search_param = f"%{search}%"
+        params.extend([search_param, search_param, search_param])
+    if item_type_filter:
+        where_conditions.append("item_type = ?")
+        params.append(item_type_filter)
+
+    where_clause = " AND ".join(where_conditions)
+    sql = f"SELECT * FROM my_items WHERE {where_clause}"
+    items = query_db(sql, tuple(params))
+
+    if export_format == 'txt':
+        output = []
+        output.append("=" * 80)
+        output.append("D2R My Items Export")
+        output.append("=" * 80)
+        for item in items:
+            output.append(f"[{item['item_type'].upper()}] {item['item_id']}")
+            output.append(f"  Account: {item['account']}")
+            output.append(f"  Location: {item['storage_type']} - {item['character_name'] or ''} {item['storage_name'] or ''}")
+            if item['is_ethereal']: output.append(f"  Ethereal")
+            if item['is_artifact']: output.append(f"  Artifact")
+            if item['sockets']: output.append(f"  Sockets: {item['sockets']}")
+            if item['defense']: output.append(f"  Defense: {item['defense']}")
+            if item['enhanced_defense']: output.append(f"  ED: {item['enhanced_defense']}%")
+            if item['req_level']: output.append(f"  Req Level: {item['req_level']}")
+            if item['skill_name']: output.append(f"  Skill: +{item['skill_level'] or 1} {item['skill_name']}")
+            if item['mf']: output.append(f"  MF: {item['mf']}%")
+            if item['res_all']: output.append(f"  All Res: +{item['res_all']}%")
+            if item['fcr']: output.append(f"  FCR: +{item['fcr']}%")
+            if item['ias']: output.append(f"  IAS: +{item['ias']}%")
+            if item['notes']: output.append(f"  Notes: {item['notes']}")
+            output.append("-" * 40)
+        return '\n'.join(output), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    else:
+        import csv
+        import io
+        output = io.StringIO()
+        if items:
+            fieldnames = list(items[0].keys())
+            writer = csv.DictWriter(output, fieldnames=fieldnames)
+            writer.writeheader()
+            for item in items:
+                writer.writerow(dict(item))
+        return output.getvalue(), 200, {'Content-Type': 'text/csv; charset=utf-8'}
 
 @app.route('/my-items/add', methods=['GET', 'POST'])
 @login_required
@@ -1057,6 +1228,9 @@ def my_items_edit(item_id):
         return jsonify({'error': 'Item not found'}), 404
 
     if request.method == 'POST':
+        def int_or_none(v): return int(v) if v and v.strip() else None
+        def float_or_none(v): return float(v) if v and v.strip() else None
+        
         item_type = request.form.get('item_type', 'normal')
         item_id_val = request.form.get('item_id', '')
         account = request.form.get('account', '')
@@ -1064,20 +1238,84 @@ def my_items_edit(item_id):
         storage_type = request.form.get('storage_type', '')
         storage_name = request.form.get('storage_name', '')
         notes = request.form.get('notes', '')
+        image_path = request.form.get('image_path', '')
         is_ethereal = 1 if request.form.get('is_ethereal') else 0
         is_artifact = 1 if request.form.get('is_artifact') else 0
-        quality = safe_int(request.form.get('quality', 0))
-        defense = safe_int(request.form.get('defense', 0), default=None)
-        enhanced_damage = safe_int(request.form.get('enhanced_damage', 0), default=None)
-        skills = safe_int(request.form.get('skills', 0), default=None)
-        all_resists = safe_int(request.form.get('all_resists', 0), default=None)
-        mf = safe_int(request.form.get('mf', 0), default=None)
-        sockets = safe_int(request.form.get('sockets', 0), default=None)
+        sockets = int_or_none(request.form.get('sockets'))
+        
+        req_level = int_or_none(request.form.get('req_level'))
+        req_str = int_or_none(request.form.get('req_str'))
+        req_dex = int_or_none(request.form.get('req_dex'))
+        defense = int_or_none(request.form.get('defense'))
+        enhanced_defense = int_or_none(request.form.get('enhanced_defense'))
+        durability = int_or_none(request.form.get('durability'))
+        damage_min = int_or_none(request.form.get('damage_min'))
+        damage_max = int_or_none(request.form.get('damage_max'))
+        
+        str_bonus = int_or_none(request.form.get('str_bonus'))
+        dex_bonus = int_or_none(request.form.get('dex_bonus'))
+        vit_bonus = int_or_none(request.form.get('vit_bonus'))
+        ene_bonus = int_or_none(request.form.get('ene_bonus'))
+        life = int_or_none(request.form.get('life'))
+        mana = int_or_none(request.form.get('mana'))
+        
+        skill_name = request.form.get('skill_name', '')
+        skill_level = int_or_none(request.form.get('skill_level'))
+        
+        ctc_trigger = request.form.get('ctc_trigger', '')
+        ctc_skill_name = request.form.get('ctc_skill_name', '')
+        ctc_skill_level = int_or_none(request.form.get('ctc_skill_level'))
+        
+        ias = int_or_none(request.form.get('ias'))
+        fcr = int_or_none(request.form.get('fcr'))
+        fhr = int_or_none(request.form.get('fhr'))
+        frw = int_or_none(request.form.get('frw'))
+        
+        res_fire = int_or_none(request.form.get('res_fire'))
+        res_cold = int_or_none(request.form.get('res_cold'))
+        res_ltng = int_or_none(request.form.get('res_ltng'))
+        res_pois = int_or_none(request.form.get('res_pois'))
+        res_all = int_or_none(request.form.get('res_all'))
+        
+        absorb_fire = int_or_none(request.form.get('absorb_fire'))
+        absorb_cold = int_or_none(request.form.get('absorb_cold'))
+        absorb_ltng = int_or_none(request.form.get('absorb_ltng'))
+        
+        add_fire_min = int_or_none(request.form.get('add_fire_min'))
+        add_fire_max = int_or_none(request.form.get('add_fire_max'))
+        add_cold_min = int_or_none(request.form.get('add_cold_min'))
+        add_cold_max = int_or_none(request.form.get('add_cold_max'))
+        add_ltng_min = int_or_none(request.form.get('add_ltng_min'))
+        add_ltng_max = int_or_none(request.form.get('add_ltng_max'))
+        add_pois_min = int_or_none(request.form.get('add_pois_min'))
+        add_pois_max = int_or_none(request.form.get('add_pois_max'))
+        
+        mf_val = int_or_none(request.form.get('mf'))
+        eg = int_or_none(request.form.get('eg'))
+        life_steal = float_or_none(request.form.get('life_steal'))
+        mana_steal = float_or_none(request.form.get('mana_steal'))
+        life_after_kill = int_or_none(request.form.get('life_after_kill'))
+        mana_after_kill = int_or_none(request.form.get('mana_after_kill'))
+        
+        attack_rating = int_or_none(request.form.get('attack_rating'))
+        attack_rating_plus = int_or_none(request.form.get('attack_rating_plus'))
+        crushing_blow = int_or_none(request.form.get('crushing_blow'))
+        deadly_strike = int_or_none(request.form.get('deadly_strike'))
+        open_wounds = int_or_none(request.form.get('open_wounds'))
+        
+        cannot_be_frozen = 1 if request.form.get('cannot_be_frozen') else 0
+        
+        ctc_trigger2 = request.form.get('ctc_trigger2', '')
+        ctc_skill_name2 = request.form.get('ctc_skill_name2', '')
+        ctc_skill_level2 = int_or_none(request.form.get('ctc_skill_level2'))
+        ctc_trigger3 = request.form.get('ctc_trigger3', '')
+        ctc_skill_name3 = request.form.get('ctc_skill_name3', '')
+        ctc_skill_level3 = int_or_none(request.form.get('ctc_skill_level3'))
 
         db.execute('''
-            UPDATE my_items SET item_type=?, item_id=?, account=?, character_name=?, storage_type=?, storage_name=?, notes=?, is_ethereal=?, is_artifact=?, quality=?, defense=?, enhanced_damage=?, skills=?, all_resists=?, mf=?, sockets=?, update_time=CURRENT_TIMESTAMP
+            UPDATE my_items SET item_type=?, item_id=?, account=?, character_name=?, storage_type=?, storage_name=?, notes=?, image_path=?, is_ethereal=?, is_artifact=?, sockets=?, req_level=?, req_str=?, req_dex=?, defense=?, enhanced_defense=?, durability=?, damage_min=?, damage_max=?, str_bonus=?, dex_bonus=?, vit_bonus=?, ene_bonus=?, life=?, mana=?, skill_name=?, skill_level=?, ctc_trigger=?, ctc_skill_name=?, ctc_skill_level=?, ias=?, fcr=?, fhr=?, frw=?, res_fire=?, res_cold=?, res_ltng=?, res_pois=?, res_all=?, absorb_fire=?, absorb_cold=?, absorb_ltng=?, add_fire_min=?, add_fire_max=?, add_cold_min=?, add_cold_max=?, add_ltng_min=?, add_ltng_max=?, add_pois_min=?, add_pois_max=?, mf=?, eg=?, life_steal=?, mana_steal=?, life_after_kill=?, mana_after_kill=?, attack_rating=?, attack_rating_plus=?, crushing_blow=?, deadly_strike=?, open_wounds=?, cannot_be_frozen=?, ctc_trigger2=?, ctc_skill_name2=?, ctc_skill_level2=?, ctc_trigger3=?, ctc_skill_name3=?, ctc_skill_level3=?, update_time=CURRENT_TIMESTAMP
             WHERE id=? AND user_id=?
-        ''', (item_type, item_id_val, account, character_name, storage_type, storage_name, notes, is_ethereal, is_artifact, quality, defense, enhanced_damage, skills, all_resists, mf, sockets, item_id, user_id))
+        ''', (item_type, item_id_val, account, character_name, storage_type, storage_name, notes, image_path, is_ethereal, is_artifact, sockets, req_level, req_str, req_dex, defense, enhanced_defense, durability, damage_min, damage_max, str_bonus, dex_bonus, vit_bonus, ene_bonus, life, mana, skill_name, skill_level, ctc_trigger, ctc_skill_name, ctc_skill_level, ias, fcr, fhr, frw, res_fire, res_cold, res_ltng, res_pois, res_all, absorb_fire, absorb_cold, absorb_ltng, add_fire_min, add_fire_max, add_cold_min, add_cold_max, add_ltng_min, add_ltng_max, add_pois_min, add_pois_max, mf_val, eg, life_steal, mana_steal, life_after_kill, mana_after_kill, attack_rating, attack_rating_plus, crushing_blow, deadly_strike, open_wounds, cannot_be_frozen, ctc_trigger2, ctc_skill_name2, ctc_skill_level2, ctc_trigger3, ctc_skill_name3, ctc_skill_level3, item_id, user_id))
         db.commit()
         return f'<script>alert("更新成功!"); window.location.href="/my-items?lang={lang}";</script>'
 

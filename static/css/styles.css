@@ -72,6 +72,17 @@
     border: 1px solid #ced4da;
     color: #bed3e9;
 }
+.auto-filled {
+    border-color: #4CAF50 !important;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5) !important;
+    background-color: rgba(76, 175, 80, 0.1) !important;
+    transition: all 0.3s ease;
+}
+
+/* Base input styles for reference or if missing */
+.input-field.filled {
+    border-color: var(--color-magic);
+}
 
 /* Blue Theme - Ocean Tech */
 [data-theme="blue"] {
