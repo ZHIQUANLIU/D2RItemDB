@@ -1,142 +1,314 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-        <div class="header">
-            <h1>{% if lang == 'zh' %}我的物品{% else %}My Items{% endif %}</h1>
-            <div style="display:flex;gap:10px;align-items:center;">
-                {% if session.user_id %}
-                    <span style="color: var(--text-secondary);">{{ '已登录' if lang == 'zh' else 'Logged in' }}</span>
-                    <a href="/my-items/add?lang={{ lang }}" class="btn primary">{{ '添加物品' if lang=='zh' else 'Add Item' }}</a>
-                    <a href="/logout" class="btn">{{ '登出' if lang=='zh' else 'Logout' }}</a>
-                {% else %}
-                    <a href="/login?lang={{ lang }}" class="btn">{{ '登录' if lang=='zh' else 'Login' }}</a>
-                    <a href="/register?lang={{ lang }}" class="btn">{{ '注册' if lang=='zh' else 'Register' }}</a>
-                {% endif %}
-                <div class="theme-switcher">
-                    <button class="theme-toggle-btn" id="themeToggle">
-                        <span id="currentThemeName">{{ '深色' if lang=='zh' else 'Dark' }}</span>
-                    </button>
-                    <div class="theme-menu" id="themeMenu">
-                        <div class="theme-option active" data-theme="dark">
-                            <div class="theme-icon"></div>
-                            {{ '深色' if lang=='zh' else 'Dark' }}
-                        </div>
-                        <div class="theme-option" data-theme="light">
-                            <div class="theme-icon"></div>
-                            {{ '亮色' if lang=='zh' else 'Light' }}
-                        </div>
-                    </div>
-                </div>
-                <a href="/settings?lang={{ lang }}" class="btn">{{ '设置' if lang=='zh' else 'Settings' }}</a>
-                <div class="tabs" style="margin-bottom:0;">
-                    <button class="tab {% if lang=='zh' %}active{% endif %}" onclick="setLang('zh')">中文</button>
-                    <button class="tab {% if lang=='en' %}active{% endif %}" onclick="setLang('en')">English</button>
-                </div>
+    <div class="header">
+        <h1>{% if lang == 'zh' %}我的物品{% else %}My Items{% endif %}</h1>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            {% if session.user_id %}
+                <span style="color: var(--text-secondary);">{{ '已登录' if lang == 'zh' else 'Logged in' }}</span>
+                <a href="/my-items/add?lang={{ lang }}" class="btn primary">{{ '添加物品' if lang=='zh' else 'Add Item' }}</a>
+                <a href="/logout" class="btn">{{ '登出' if lang=='zh' else 'Logout' }}</a>
+            {% else %}
+                <a href="/login?lang={{ lang }}" class="btn">{{ '登录' if lang=='zh' else 'Login' }}</a>
+                <a href="/register?lang={{ lang }}" class="btn">{{ '注册' if lang=='zh' else 'Register' }}</a>
+            {% endif %}
+            <a href="/settings?lang={{ lang }}" class="btn">{% if lang == 'zh' %}设置{% else %}Settings{% endif %}</a>
+            <div class="tabs" style="margin-bottom:0;">
+                <button class="tab {% if lang=='zh' %}active{% endif %}" onclick="setLang('zh')">中文</button>
+                <button class="tab {% if lang=='en' %}active{% endif %}" onclick="setLang('en')">English</button>
             </div>
         </div>
-        
-        <div class="filter-bar">
-            <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;">
-                <input type="hidden" name="lang" value="{{ lang }}">
-                <select name="account">
-                    <option value="">{% if lang == 'zh' %}所有账户{% else %}All Accounts{% endif %}</option>
-                    {% for acc in accounts %}
-                    <option value="{{ acc }}" {% if acc == selected_account %}selected{% endif %}>{{ acc }}</option>
-                    {% endfor %}
-                </select>
-                <select name="storage_type">
-                    <option value="">{% if lang == 'zh' %}所有位置{% else %}All Locations{% endif %}</option>
-                    <option value="stash" {% if selected_storage == 'stash' %}selected{% endif %}>{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</option>
-                    <option value="character" {% if selected_storage == 'character' %}selected{% endif %}>{% if lang == 'zh' %}角色背包{% else %}Character{% endif %}</option>
-                    <option value="shared" {% if selected_storage == 'shared' %}selected{% else %}selected{% endif %}>{% if lang == 'zh' %}共享箱{% else %}Shared Stash{% endif %}</option>
-                </select>
-                <button type="submit" class="btn primary" class="btn">{% if lang == 'zh' %}筛选{% else %}Filter{% endif %}</button>
-            </form>
-        </div>
-        
-        {% if items %}
-        <table>
-            <thead>
-                <tr>
-                    <th>{% if lang == 'zh' %}物品{% else %}Item{% endif %}</th>
-                    <th>{% if lang == 'zh' %}账户{% else %}Account{% endif %}</th>
-                    <th>{% if lang == 'zh' %}角色/位置{% else %}Character/Location{% endif %}</th>
-                    <th>{% if lang == 'zh' %}属性{% else %}Stats{% endif %}</th>
-                    <th>{% if lang == 'zh' %}备注{% else %}Notes{% endif %}</th>
-                    <th>{% if lang == 'zh' %}操作{% else %}Actions{% endif %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    <td>
-                        {% if item.item_type == 'unique' %}
-                        <span style="color:#ffd700">{{ item.item_id }}</span>
-                        {% elif item.item_type == 'set' %}
-                        <span style="color:#00ff00">{{ item.item_id }}</span>
-                        {% elif item.item_type == 'magic' %}
-                        <span style="color:#8080ff">{{ item.item_id }}</span>
-                        {% elif item.item_type == 'rare' %}
-                        <span style="color:#ffff00">{{ item.item_id }}</span>
-                        {% elif item.item_type == 'runeword' %}
-                        <span style="color:#00ffff">{{ item.item_id }}</span>
-                        {% else %}
-                        {{ item.item_id }}
-                        {% endif %}
-                        {% if item.is_ethereal %}<span class="eth">{% if lang == 'zh' %}无形{% else %}(ETH){% endif %}</span>{% endif %}
-                        {% if item.is_artifact %}<span style="color:#ff00ff">{% if lang == 'zh' %}神器{% else %}(ART){% endif %}</span>{% endif %}
-                        {% if item.sockets and item.sockets > 0 %}<span style="color:#ffa500">({{ item.sockets }}孔)</span>{% endif %}
-                    </td>
-                    <td>{{ item.account }}</td>
-                    <td>
-                        {% if item.storage_type == 'stash' %}
-                        <span class="badge badge-stash">{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</span>
-                        {% elif item.storage_type == 'character' %}
-                        <span class="badge badge-char">{{ item.character_name }}</span>
-                        {% elif item.storage_type == 'shared' %}
-                        <span class="badge badge-shared">{% if lang == 'zh' %}共享箱{% else %}Shared{% endif %}</span>
-                        {% endif %}
-                        {% if item.storage_name %}({{ item.storage_name }}){% endif %}
-                    </td>
-                    <td style="font-size:0.75em;">
-                        {% if item.req_level %}[{{ item.req_level }}]{% endif %}
-                        {% if item.defense %} Def: {{ item.defense }}{% endif %}
-                        {% if item.enhanced_defense %} ED: {{ item.enhanced_defense }}%{% endif %}
-                        {% if item.damage_min %}{{ item.damage_min }}-{{ item.damage_max or item.damage_min }}{% endif %}
-                        {% if item.sockets %}[{{ item.sockets }}]{% endif %}
-                        {% if item.str_bonus %}+{{ item.str_bonus }} Str{% endif %}
-                        {% if item.dex_bonus %}+{{ item.dex_bonus }} Dex{% endif %}
-                        {% if item.vit_bonus %}+{{ item.vit_bonus }} Vit{% endif %}
-                        {% if item.ene_bonus %}+{{ item.ene_bonus }} Ene{% endif %}
-                        {% if item.life %}+{{ item.life }} Life{% endif %}
-                        {% if item.mana %}+{{ item.mana }} Mana{% endif %}
-                        {% if item.skill_name %}+{{ item.skill_level or 1 }} {{ item.skill_name }}{% endif %}
-                        {% if item.ias %}+{{ item.ias }}% IAS{% endif %}
-                        {% if item.fcr %}+{{ item.fcr }}% FCR{% endif %}
-                        {% if item.fhr %}+{{ item.fhr }}% FHR{% endif %}
-                        {% if item.frw %}+{{ item.frw }}% FRW{% endif %}
-                        {% if item.res_all %}+{{ item.res_all }}% All Res{% endif %}
-                        {% if item.res_fire %}+{{ item.res_fire }}% Fire Res{% endif %}
-                        {% if item.res_cold %}+{{ item.res_cold }}% Cold Res{% endif %}
-                        {% if item.res_ltng %}+{{ item.res_ltng }}% Ltng Res{% endif %}
-                        {% if item.mf %}+{{ item.mf }}% MF{% endif %}
-                        {% if item.life_steal %}{{ item.life_steal }}% Life Steal{% endif %}
-                        {% if item.cannot_be_frozen %}[CBF]{% endif %}
-                    </td>
-                    <td>{{ item.notes or '' }}</td>
-                    <td>
-                        <a href="/my-items/edit/{{ item.id }}?lang={{ lang }}" class="btn">{% if lang == 'zh' %}编辑{% else %}Edit{% endif %}</a>
-                        <a href="/my-items/delete/{{ item.id }}?lang={{ lang }}" class="btn btn-danger" onclick="return confirm('{% if lang == 'zh' %}确定删除?{% else %}Confirm delete?{% endif %}')">{% if lang == 'zh' %}删除{% else %}Delete{% endif %}</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div class="empty">
-            {% if lang == 'zh' %}暂无物品记录，点击"添加物品"开始记录{% else %}No items yet. Click "Add Item" to start tracking{% endif %}
-        </div>
-        {% endif %}
     </div>
+    
+    <div class="filter-bar">
+        <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <input type="text" name="search" value="{{ search or '' }}" placeholder="{% if lang == 'zh' %}搜索物品名称...{% else %}Search items...{% endif %}" style="padding:8px;min-width:200px;">
+            <select name="account">
+                <option value="">{% if lang == 'zh' %}所有账户{% else %}All Accounts{% endif %}</option>
+                {% for acc in accounts %}
+                <option value="{{ acc }}" {% if acc == selected_account %}selected{% endif %}>{{ acc }}</option>
+                {% endfor %}
+            </select>
+            <select name="storage_type">
+                <option value="">{% if lang == 'zh' %}所有位置{% else %}All Locations{% endif %}</option>
+                <option value="stash" {% if selected_storage == 'stash' %}selected{% endif %}>{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</option>
+                <option value="character" {% if selected_storage == 'character' %}selected{% endif %}>{% if lang == 'zh' %}角色背包{% else %}Character{% endif %}</option>
+                <option value="shared" {% if selected_storage == 'shared' %}selected{% endif %}>{% if lang == 'zh' %}共享箱{% else %}Shared Stash{% endif %}</option>
+            </select>
+            <select name="item_type">
+                <option value="">{% if lang == 'zh' %}所有类型{% else %}All Types{% endif %}</option>
+                <option value="normal" {% if item_type_filter == 'normal' %}selected{% endif %}>{% if lang == 'zh' %}普通{% else %}Normal{% endif %}</option>
+                <option value="magic" {% if item_type_filter == 'magic' %}selected{% endif %}>{% if lang == 'zh' %}魔法{% else %}Magic{% endif %}</option>
+                <option value="rare" {% if item_type_filter == 'rare' %}selected{% endif %}>{% if lang == 'zh' %}稀有{% else %}Rare{% endif %}</option>
+                <option value="unique" {% if item_type_filter == 'unique' %}selected{% endif %}>{% if lang == 'zh' %}暗金{% else %}Unique{% endif %}</option>
+                <option value="set" {% if item_type_filter == 'set' %}selected{% endif %}>{% if lang == 'zh' %}套装{% else %}Set{% endif %}</option>
+                <option value="runeword" {% if item_type_filter == 'runeword' %}selected{% endif %}>{% if lang == 'zh' %}符文之语{% else %}Runeword{% endif %}</option>
+            </select>
+            <select name="sort_by">
+                <option value="create_time" {% if sort_by == 'create_time' %}selected{% endif %}>{% if lang == 'zh' %}添加时间{% else %}Add Time{% endif %}</option>
+                <option value="update_time" {% if sort_by == 'update_time' %}selected{% endif %}>{% if lang == 'zh' %}更新时间{% else %}Update Time{% endif %}</option>
+                <option value="item_id" {% if sort_by == 'item_id' %}selected{% endif %}>{% if lang == 'zh' %}物品名称{% else %}Item Name{% endif %}</option>
+                <option value="account" {% if sort_by == 'account' %}selected{% endif %}>{% if lang == 'zh' %}账户{% else %}Account{% endif %}</option>
+                <option value="sockets" {% if sort_by == 'sockets' %}selected{% endif %}>{% if lang == 'zh' %}孔数{% else %}Sockets{% endif %}</option>
+                <option value="defense" {% if sort_by == 'defense' %}selected{% endif %}>{% if lang == 'zh' %}防御{% else %}Defense{% endif %}</option>
+                <option value="mf" {% if sort_by == 'mf' %}selected{% endif %}>MF%</option>
+                <option value="res_all" {% if sort_by == 'res_all' %}selected{% endif %}>{% if lang == 'zh' %}全抗{% else %}All Res{% endif %}</option>
+            </select>
+            <select name="sort_order">
+                <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>{% if lang == 'zh' %}降序{% else %}Descending{% endif %}</option>
+                <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>{% if lang == 'zh' %}升序{% else %}Ascending{% endif %}</option>
+            </select>
+            <button type="submit" class="btn primary">{% if lang == 'zh' %}筛选{% else %}Filter{% endif %}</button>
+            
+            {% if items %}
+            <div style="display:flex;gap:5px;margin-left:auto;">
+                <a href="/my-items/export?format=csv{% if selected_account %}&account={{ selected_account }}{% endif %}{% if selected_storage %}&storage_type={{ selected_storage }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if item_type_filter %}&item_type={{ item_type_filter }}{% endif %}&lang={{ lang }}" class="btn" target="_blank">CSV</a>
+                <a href="/my-items/export?format=txt{% if selected_account %}&account={{ selected_account }}{% endif %}{% if selected_storage %}&storage_type={{ selected_storage }}{% endif %}{% if search %}&search={{ search }}{% endif %}{% if item_type_filter %}&item_type={{ item_type_filter }}{% endif %}&lang={{ lang }}" class="btn" target="_blank">TXT</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    
+    {% if items %}
+    <div class="items-count">{% if lang == 'zh' %}共{% else %}Total{% endif %} {{ items|length }}{% if lang == 'zh' %}件物品{% else %} items{% endif %}</div>
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width:15%;">{% if lang == 'zh' %}物品{% else %}Item{% endif %}</th>
+                <th style="width:10%;">{% if lang == 'zh' %}账户{% else %}Account{% endif %}</th>
+                <th style="width:12%;">{% if lang == 'zh' %}位置{% else %}Location{% endif %}</th>
+                <th style="width:40%;">{% if lang == 'zh' %}属性{% else %}Stats{% endif %}</th>
+                <th style="width:8%;">{% if lang == 'zh' %}类型{% else %}Type{% endif %}</th>
+                <th style="width:15%;">{% if lang == 'zh' %}操作{% else %}Actions{% endif %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    <div class="item-name">
+                        {% if item.item_type == 'unique' %}
+                        <span class="rarity-unique">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'set' %}
+                        <span class="rarity-set">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'magic' %}
+                        <span class="rarity-magic">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'rare' %}
+                        <span class="rarity-rare">{{ item.item_id }}</span>
+                        {% elif item.item_type == 'runeword' %}
+                        <span class="rarity-runeword">{{ item.item_id }}</span>
+                        {% else %}
+                        <span class="rarity-normal">{{ item.item_id }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="item-flags">
+                        {% if item.is_ethereal %}<span class="flag flag-eth">ETH</span>{% endif %}
+                        {% if item.is_artifact %}<span class="flag flag-art">ART</span>{% endif %}
+                        {% if item.sockets and item.sockets > 0 %}<span class="flag flag-sockets">[{{ item.sockets }}]</span>{% endif %}
+                    </div>
+                </td>
+                <td>
+                    <span class="account-name">{{ item.account }}</span>
+                </td>
+                <td>
+                    {% if item.storage_type == 'stash' %}
+                    <span class="location-badge stash">{% if lang == 'zh' %}箱子{% else %}Stash{% endif %}</span>
+                    {% elif item.storage_type == 'character' %}
+                    <span class="location-badge character">{{ item.character_name or '-' }}</span>
+                    {% elif item.storage_type == 'shared' %}
+                    <span class="location-badge shared">{% if lang == 'zh' %}共享箱{% else %}Shared{% endif %}</span>
+                    {% endif %}
+                    {% if item.storage_name %}<span class="stash-name">({{ item.storage_name }})</span>{% endif %}
+                </td>
+                <td>
+                    <div class="stats-grid">
+                        {% if item.req_level %}<span class="stat stat-req">[{{ item.req_level }}]</span>{% endif %}
+                        {% if item.defense %}<span class="stat stat-def">Def: {{ item.defense }}</span>{% endif %}
+                        {% if item.enhanced_defense %}<span class="stat stat-ed">ED: {{ item.enhanced_defense }}%</span>{% endif %}
+                        {% if item.damage_min %}<span class="stat stat-dmg">{{ item.damage_min }}-{{ item.damage_max or item.damage_min }}</span>{% endif %}
+                        {% if item.str_bonus %}<span class="stat stat-str">+{{ item.str_bonus }} Str</span>{% endif %}
+                        {% if item.dex_bonus %}<span class="stat stat-dex">+{{ item.dex_bonus }} Dex</span>{% endif %}
+                        {% if item.vit_bonus %}<span class="stat stat-vit">+{{ item.vit_bonus }} Vit</span>{% endif %}
+                        {% if item.ene_bonus %}<span class="stat stat-ene">+{{ item.ene_bonus }} Ene</span>{% endif %}
+                        {% if item.life %}<span class="stat stat-life">+{{ item.life }} Life</span>{% endif %}
+                        {% if item.mana %}<span class="stat stat-mana">+{{ item.mana }} Mana</span>{% endif %}
+                        {% if item.skill_name %}<span class="stat stat-skill">+{{ item.skill_level or 1 }} {{ item.skill_name }}</span>{% endif %}
+                        {% if item.ias %}<span class="stat stat-ias">+{{ item.ias }}% IAS</span>{% endif %}
+                        {% if item.fcr %}<span class="stat stat-fcr">+{{ item.fcr }}% FCR</span>{% endif %}
+                        {% if item.fhr %}<span class="stat stat-fhr">+{{ item.fhr }}% FHR</span>{% endif %}
+                        {% if item.frw %}<span class="stat stat-frw">+{{ item.frw }}% FRW</span>{% endif %}
+                        {% if item.res_all %}<span class="stat stat-res-all">+{{ item.res_all }}% All Res</span>{% endif %}
+                        {% if item.res_fire %}<span class="stat stat-res-fire">+{{ item.res_fire }}% Fire</span>{% endif %}
+                        {% if item.res_cold %}<span class="stat stat-res-cold">+{{ item.res_cold }}% Cold</span>{% endif %}
+                        {% if item.res_ltng %}<span class="stat stat-res-ltng">+{{ item.res_ltng }}% Ltng</span>{% endif %}
+                        {% if item.res_pois %}<span class="stat stat-res-pois">+{{ item.res_pois }}% Pois</span>{% endif %}
+                        {% if item.mf %}<span class="stat stat-mf">+{{ item.mf }}% MF</span>{% endif %}
+                        {% if item.life_steal %}<span class="stat stat-ls">{{ item.life_steal }}% LS</span>{% endif %}
+                        {% if item.mana_steal %}<span class="stat stat-ms">{{ item.mana_steal }}% MS</span>{% endif %}
+                        {% if item.crushing_blow %}<span class="stat stat-cb">{{ item.crushing_blow }}% CB</span>{% endif %}
+                        {% if item.deadly_strike %}<span class="stat stat-ds">{{ item.deadly_strike }}% DS</span>{% endif %}
+                        {% if item.open_wounds %}<span class="stat stat-ow">{{ item.open_wounds }}% OW</span>{% endif %}
+                        {% if item.cannot_be_frozen %}<span class="stat stat-cbf">[CBF]</span>{% endif %}
+                        {% if item.fcr and item.fhr and item.ias %}
+                        <span class="stat-combo">FCR {{ item.fcr }} | FHR {{ item.fhr }} | IAS {{ item.ias }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <span class="type-badge type-{{ item.item_type }}">{{ item.item_type }}</span>
+                    {% if item.notes %}
+                    <span class="notes-indicator" title="{{ item.notes }}">&#128221;</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/my-items/edit/{{ item.id }}?lang={{ lang }}" class="btn btn-small">{% if lang == 'zh' %}编辑{% else %}Edit{% endif %}</a>
+                        <a href="/my-items/delete/{{ item.id }}?lang={{ lang }}" class="btn btn-danger btn-small" onclick="return confirm('{% if lang == 'zh' %}确定删除?{% else %}Confirm delete?{% endif %}')">{% if lang == 'zh' %}删除{% else %}Delete{% endif %}</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty">
+        {% if lang == 'zh' %}暂无物品记录，点击"添加物品"开始记录{% else %}No items yet. Click "Add Item" to start tracking{% endif %}
+    </div>
+    {% endif %}
+</div>
 
+<style>
+.items-count {
+    margin: 10px 0;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.items-table th {
+    background: var(--bg-card);
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.items-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-dim);
+    vertical-align: top;
+}
+.items-table tr:hover {
+    background: rgba(255,255,255,0.02);
+}
+.item-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.rarity-unique { color: #ffd700; }
+.rarity-set { color: #00ff00; }
+.rarity-magic { color: #8080ff; }
+.rarity-rare { color: #ffff00; }
+.rarity-runeword { color: #00ffff; }
+.rarity-normal { color: var(--text-primary); }
+.item-flags {
+    display: flex;
+    gap: 4px;
+    font-size: 11px;
+}
+.flag {
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+}
+.flag-eth { background: #4a4a6a; color: #aaa; }
+.flag-art { background: #6a2a6a; color: #f0f; }
+.flag-sockets { background: #6a4a2a; color: #ffa500; }
+.account-name {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.location-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+.location-badge.stash { background: #2a4a6a; color: #8cf; }
+.location-badge.character { background: #2a6a4a; color: #8f8; }
+.location-badge.shared { background: #4a2a6a; color: #c8f; }
+.stash-name {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.stat {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    font-size: 11px;
+}
+.stat-req { background: #3a3a4a; color: #aaa; }
+.stat-def { background: #2a4a2a; color: #8f8; }
+.stat-ed { background: #4a4a2a; color: #ff8; }
+.stat-str { background: #4a2a2a; color: #f88; }
+.stat-dex { background: #2a4a3a; color: #8f8; }
+.stat-vit { background: #3a2a4a; color: #b8f; }
+.stat-ene { background: #2a3a4a; color: #88f; }
+.stat-life { background: #4a2a2a; color: #f88; }
+.stat-mana { background: #2a2a4a; color: #88f; }
+.stat-skill { background: #4a3a2a; color: #ff8; }
+.stat-res-all { background: #2a4a4a; color: #8ff; }
+.stat-res-fire { background: #5a2a1a; color: #f84; }
+.stat-res-cold { background: #1a2a4a; color: #48f; }
+.stat-res-ltng { background: #3a3a1a; color: #ff4; }
+.stat-res-pois { background: #2a3a2a; color: #4f4; }
+.stat-mf { background: #4a2a4a; color: #f4f; }
+.stat-fcr { background: #2a2a4a; color: #88f; }
+.stat-fhr { background: #2a4a2a; color: #8f8; }
+.stat-ias { background: #4a4a2a; color: #ff8; }
+.stat-cbf { background: #3a3a3a; color: #aaa; }
+.stat-combo {
+    background: linear-gradient(90deg, #2a2a4a, #2a4a2a);
+    color: #fff;
+    font-weight: 600;
+}
+.type-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+.type-badge.type-normal { background: #3a3a3a; color: #aaa; }
+.type-badge.type-magic { background: #3030a0; color: #88f; }
+.type-badge.type-rare { background: #a0a030; color: #ff8; }
+.type-badge.type-unique { background: #a08000; color: #ffd700; }
+.type-badge.type-set { background: #00a030; color: #8f8; }
+.type-badge.type-runeword { background: #00a0a0; color: #8ff; }
+.notes-indicator {
+    margin-left: 4px;
+    cursor: help;
+}
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+.btn-small {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+</style>
 {% endblock %}

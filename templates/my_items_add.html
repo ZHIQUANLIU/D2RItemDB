@@ -476,10 +476,15 @@
         }
         
         function setFormValue(name, value) {
-            const el = document.querySelector('input[name="' + name + '"]');
+            const el = document.querySelector('input[name="' + name + '"], select[name="' + name + '"]');
             if (el) {
-                el.value = value;
-                el.classList.add('filled');
+                if (el.type === 'checkbox') {
+                    el.checked = !!value;
+                } else {
+                    el.value = value;
+                }
+                el.classList.add('auto-filled');
+                setTimeout(() => el.classList.remove('auto-filled'), 3000);
             }
         }
         
@@ -534,7 +539,7 @@
         document.getElementById('item_id').addEventListener('input', function(e) {
             const name = this.value;
             // Check if name exists in our pre-loaded lists to avoid unnecessary API calls
-            const allNames = [...uniqueItems.map(i => i[0]), ...setItems.map(i => i[0]), ...weapons.map(i => i[0]), ...armors.map(i => i[0]), ...miscItems.map(i => i[0])];
+            const allNames = [...uniqueItems.map(i => i[0]), ...setItems.map(i => i[0]), ...uniqueItems.map(i => i[1]), ...setItems.map(i => i[1]), ...weapons.map(i => i[0]), ...armors.map(i => i[0]), ...miscItems.map(i => i[0])];
             
             if (allNames.includes(name)) {
                 fetch(`/api/item-defaults?name=${encodeURIComponent(name)}`)
@@ -544,7 +549,7 @@
                             // Smart category detection
                             if (data.item_type) {
                                 const typeSelect = document.getElementById('item_type');
-                                if ((typeSelect.value === 'normal' || typeSelect.value === 'magic') && (data.item_type === 'unique' || data.item_type === 'set')) {
+                                if (typeSelect.value !== data.item_type) {
                                     typeSelect.value = data.item_type;
                                     updateItems();
                                 }
