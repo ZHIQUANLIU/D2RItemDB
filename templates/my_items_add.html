@@ -49,14 +49,14 @@
             
             <div class="form-group">
                 <label>{% if lang == 'zh' %}战网账户{% else %}Battle.net Account{% endif %}</label>
-                <input type="text" class="input-field" name="account" id="account_input" list="account_list" placeholder="{% if lang == 'zh' %}输入或选择账户{% else %}Type or select account{% endif %}" oninput="filterCharacters()" onchange="filterCharacters()" required>
-                <datalist id="account_list">
+                <select name="account" id="account_select" onchange="filterCharacters()" required>
+                    <option value="">-- {% if lang == 'zh' %}选择账户{% else %}Select Account{% endif %} --</option>
                     {% for acc in accounts %}
-                    <option value="{{ acc[1] }}">{{ acc[1] }}</option>
+                    <option value="{{ acc[1] }}" data-id="{{ acc[0] }}">{{ acc[1] }}</option>
                     {% endfor %}
-                </datalist>
-                <div style="margin-top:5px;font-size:12px;color:#666;">
-                    <a href="/accounts?lang={{ lang }}" target="_blank">{% if lang == 'zh' %}管理账户和角色{% else %}Manage Accounts & Characters{% endif %}</a>
+                </select>
+                <div style="margin-top:5px;font-size:12px;color:var(--text-muted);">
+                    <a href="/accounts?lang={{ lang }}" target="_blank" style="color: var(--text-primary);">{% if lang == 'zh' %}管理账户和角色{% else %}Manage Accounts & Characters{% endif %}</a>
                 </div>
             </div>
             
@@ -71,8 +71,9 @@
                         </select>
                     </div>
                     <div class="col" id="char_col">
-                        <input type="text" class="input-field" name="character_name" id="character_input" list="character_list" placeholder="{% if lang == 'zh' %}输入或选择角色{% else %}Type or select character{% endif %}">
-                        <datalist id="character_list"></datalist>
+                        <select name="character_name" id="character_select">
+                            <option value="">-- {% if lang == 'zh' %}选择角色{% else %}Select Character{% endif %} --</option>
+                        </select>
                     </div>
                     <div class="col">
                         <input type="text" class="input-field" name="storage_name" placeholder="{% if lang == 'zh' %}箱子名(可选){% else %}Stash Name (optional){% endif %}">
@@ -488,49 +489,42 @@
         const charactersData = {{ characters|tojson }};
         
         function filterCharacters() {
-            const accountInput = document.getElementById('account_input');
-            const characterList = document.getElementById('character_list');
-            const selectedAccount = accountInput.value.trim();
+            const accountSelect = document.getElementById('account_select');
+            const characterSelect = document.getElementById('character_select');
+            const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+            const accountId = selectedOption ? parseInt(selectedOption.getAttribute('data-id')) : null;
             
-            characterList.innerHTML = '';
+            // Clear current options
+            characterSelect.innerHTML = '<option value="">-- {% if lang == "zh" %}选择角色{% else %}Select Character{% endif %} --</option>';
             
-            if (!selectedAccount) {
-                charactersData.forEach(char => {
-                    const opt = document.createElement('option');
-                    opt.value = char[2];
-                    opt.textContent = char[2] + (char[3] ? ' (' + char[3] + ')' : '');
-                    characterList.appendChild(opt);
-                });
+            if (!accountId) {
                 return;
             }
             
-            const matchedAccount = accountsData.find(acc => acc[1] === selectedAccount);
-            if (!matchedAccount) {
-                return;
-            }
-            
-            const accountId = matchedAccount[0];
             const filteredChars = charactersData.filter(char => char[1] === accountId);
             
             filteredChars.forEach(char => {
                 const opt = document.createElement('option');
                 opt.value = char[2];
                 opt.textContent = char[2] + (char[3] ? ' (' + char[3] + ')' : '');
-                characterList.appendChild(opt);
+                characterSelect.appendChild(opt);
             });
         }
         
         function toggleCharacter() {
             const storageType = document.getElementById('storage_type').value;
             const charCol = document.getElementById('char_col');
-            const charInput = document.getElementById('character_input');
+            const charSelect = document.getElementById('character_select');
             
             if (storageType === 'character') {
-                charCol.style.display = 'block';
-                charInput.required = true;
+                charCol.style.opacity = '1';
+                charSelect.disabled = false;
+                charSelect.required = true;
             } else {
-                charCol.style.display = 'block';
-                charInput.required = false;
+                charCol.style.opacity = '0.5';
+                charSelect.disabled = true;
+                charSelect.required = false;
+                charSelect.value = '';
             }
         }
         
